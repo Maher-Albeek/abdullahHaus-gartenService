@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-red: #8B1A2B;
+  --color-brand-red-light: #b02236;
+  --color-brand-green: #4D8B23;
+  --color-brand-green-light: #62af2d;
+  --color-brand-dark: #2B2B2B;
+}
+
+@keyframes marquee-right {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+
+.animate-marquee-right {
+  animation: marquee-right 35s linear infinite;
+}
+@keyframes marquee-left {
+  0%   { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee-left {
+  animation: marquee-left 35s linear infinite;
+}
+
