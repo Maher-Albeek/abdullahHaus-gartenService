@@ -20,9 +20,10 @@ export default defineComponent({
           {/* Desktop Nav */}
           <nav class="hidden md:flex gap-6 text-sm font-medium">
             <a href="/" class="hover:text-brand-green transition-colors">Home</a>
-            <a href="/services" class="hover:text-brand-green transition-colors">Leistungen</a>
-            <a href="/about" class="hover:text-brand-green transition-colors">Über uns</a>
-            <a href="/contact" class="hover:text-brand-green transition-colors">Kontakt</a>
+            <a href="/Leistungen" class="hover:text-brand-green transition-colors">Leistungen</a>
+            <a href="/gallery" class="hover:text-brand-green transition-colors">Galerie</a>
+            <a href="/Über-uns" class="hover:text-brand-green transition-colors">Über uns</a>
+            <a href="/Kontakt" class="hover:text-brand-green transition-colors">Kontakt</a>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -41,9 +42,10 @@ export default defineComponent({
         {menuOpen.value && (
           <nav class="md:hidden bg-brand-red px-4 pb-4 flex flex-col gap-3 text-sm font-medium">
             <a href="/" class="hover:text-brand-green-light transition-colors">Home</a>
-            <a href="/services" class="hover:text-brand-green-light transition-colors">Leistungen</a>
-            <a href="/about" class="hover:text-brand-green-light transition-colors">Über uns</a>
-            <a href="/contact" class="hover:text-brand-green-light transition-colors">Kontakt</a>
+            <a href="/Leistungen" class="hover:text-brand-green-light transition-colors">Leistungen</a>
+            <a href="/gallery" class="hover:text-brand-green-light transition-colors">Galerie</a>
+            <a href="/Über-uns" class="hover:text-brand-green-light transition-colors">Über uns</a>
+            <a href="/Kontakt" class="hover:text-brand-green-light transition-colors">Kontakt</a>
           </nav>
         )}
       </header>

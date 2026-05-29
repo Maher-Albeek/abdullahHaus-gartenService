@@ -56,12 +56,7 @@ export default defineComponent({
         <div class="max-w-6xl mx-auto">
           {/* Section header */}
           <div class="text-center mb-14">
-            <span class="inline-block bg-brand-red/10 text-brand-red text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4">
-              Was wir anbieten
-            </span>
-            <h2 class="text-3xl md:text-5xl font-extrabold text-brand-dark leading-tight">
-              Unsere <span class="text-brand-red">Dienstleistungen</span>
-            </h2>
+            
             <p class="mt-4 text-gray-500 text-lg max-w-2xl mx-auto">
               Von der Grundreinigung bis zum Winterdienst – wir sind Ihr zuverlässiger Partner
               rund um Haus und Garten.
