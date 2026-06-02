@@ -14,7 +14,8 @@ export default defineComponent({
     },
     setup(props) {
         return () => (
-            <section class="py-20 px-4 bg-white">
+            <section class="py-8 px-4 bg-white">
+                
                 <div class="max-w-6xl mx-auto">
                     <div class="two alt-two">
                         <h1>{props.title}
