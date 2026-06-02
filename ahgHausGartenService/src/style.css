@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: clip;
+  position: relative;
+}
+
+#app {
+  overflow-x: clip;
+  width: 100%;
+}
+
 @theme {
   --color-brand-red: #8B1A2B;
   --color-brand-red-light: #b02236;

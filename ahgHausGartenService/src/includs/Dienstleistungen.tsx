@@ -64,7 +64,7 @@ export default defineComponent({
   name: 'Dienstleistungen',
   setup() {
     return () => (
-      <section id="leistungen" class="bg-gray-50 py-20 px-4">
+      <section id="leistungen" class="bg-gray-50 py-20 px-4 overflow-hidden">
         <div class="max-w-6xl mx-auto">
           {/* Section header */}
           <div class="text-center mb-14">

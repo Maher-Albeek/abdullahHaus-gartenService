@@ -84,13 +84,13 @@ export default defineComponent({
           {/* CTA Buttons */}
           <div class="flex flex-col sm:flex-row gap-4 mt-4">
             <a
-              href="/contact"
+              href="#contact"
               class="bg-brand-red hover:bg-brand-red-light text-white font-bold px-8 py-3 rounded-lg transition-colors shadow-lg"
             >
               Jetzt Angebot anfragen
             </a>
             <a
-              href="/services"
+              href="#leistungen"
               class="border border-brand-green hover:bg-brand-green/20 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
             >
               Unsere Leistungen
