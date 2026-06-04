@@ -1,7 +1,7 @@
 import { defineComponent } from 'vue'
 
 const services = [
-  
+
   {
     icon: 'fa-solid fa-snowflake',
     title: 'Winterdienst',
@@ -14,7 +14,7 @@ const services = [
     desc: 'Streifenfreie Fenster – innen wie außen, auch in großen Höhen.',
     grad: '#8B1A2B, #c0392b',
     featured: true,
-  }, 
+  },
   {
     icon: 'fa-solid fa-building',
     title: 'Büro- & Arbeitsplatzreinigung',
@@ -44,7 +44,7 @@ const services = [
     title: 'Gartenpflege',
     desc: 'Rasenmähen, Heckenschnitt, Bepflanzung und saisonale Gartenpflege.',
     grad: '#4D8B23, #a8e063',
-  }, 
+  },
   {
     icon: 'fa-solid fa-truck-moving',
     title: 'Umzugsreinigung',
@@ -61,7 +61,7 @@ const services = [
 ]
 
 export default defineComponent({
-  name: 'Dienstleistungen',
+  name: 'DienstleistungenSection',
   setup() {
     return () => (
       <section id="leistungen" class="bg-gray-50 py-20 px-4 overflow-hidden">

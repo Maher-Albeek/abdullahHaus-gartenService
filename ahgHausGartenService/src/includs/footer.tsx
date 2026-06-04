@@ -1,7 +1,7 @@
 import {defineComponent} from 'vue'
 
 export default defineComponent({
-    name: 'Footer',
+    name: 'FooterSection',
     setup() {
         return () => (
             <footer class="bg-brand-dark text-white py-6 mt-20">

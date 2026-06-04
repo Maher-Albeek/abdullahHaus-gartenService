@@ -22,13 +22,13 @@ const images = [
 ]
 
 export default defineComponent({
-  name: 'Gallery',
+  name: 'GallerySection',
   setup() {
     return () => (
       <section id="galerie" class="py-20 px-4 bg-gray-50">
         <div class="max-w-6xl mx-auto">
           <div class="text-center mb-14">
-           
+
             <p class="mt-4 text-gray-500 text-lg max-w-2xl mx-auto">
               Einblicke in unsere abgeschlossenen Projekte rund um Haus und Garten.
             </p>

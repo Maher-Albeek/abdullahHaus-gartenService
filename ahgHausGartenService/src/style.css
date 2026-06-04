@@ -1,4 +1,13 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* ==========================================
+   HERO TEMPLATE STYLES
+   ========================================== */
+
+/* Custom cursor – hide default globally */
+* {
+  cursor: none;
+}
 
 html {
   overflow-x: hidden;
@@ -15,24 +24,32 @@ body {
 }
 
 @theme {
-  --color-brand-red: #8B1A2B;
+  --color-brand-red: #8b1a2b;
   --color-brand-red-light: #b02236;
-  --color-brand-green: #4D8B23;
+  --color-brand-green: #4d8b23;
   --color-brand-green-light: #62af2d;
-  --color-brand-dark: #2B2B2B;
+  --color-brand-dark: #2b2b2b;
 }
 
 @keyframes marquee-right {
-  0%   { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
 }
 
 .animate-marquee-right {
   animation: marquee-right 35s linear infinite;
 }
 @keyframes marquee-left {
-  0%   { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 .animate-marquee-left {
   animation: marquee-left 35s linear infinite;
@@ -43,7 +60,7 @@ h1 {
   position: relative;
   padding: 0;
   margin: 0;
-  font-family: "Raleway", sans-serif;
+  font-family: 'Raleway', sans-serif;
   font-weight: 300;
   font-size: 40px;
   color: #080808;
@@ -71,7 +88,7 @@ h1 em {
   bottom: 0;
   width: 60px;
   height: 2px;
-  content: "";
+  content: '';
   background-color: #c50000;
 }
 
@@ -86,10 +103,11 @@ h1 em {
   padding-bottom: 10px;
 }
 .alt-two h1 {
-  text-align:center;
+  text-align: center;
 }
 .alt-two h1:before {
-  left:50%; margin-left:-30px;
+  left: 50%;
+  margin-left: -30px;
 }
 
 /* === SERVICE CARDS === */
@@ -113,7 +131,9 @@ h1 em {
   box-shadow:
     inset -2px 2px hsl(0 0% 100% / 1),
     -20px 20px 40px hsl(0 0% 0% / 0.25);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
   position: relative;
   overflow: visible;
 }
@@ -152,11 +172,15 @@ h1 em {
   grid-area: content;
 }
 
-.service-card .card-content > *:first-child { margin-top: 0; }
-.service-card .card-content > *:last-child  { margin-bottom: 0; }
+.service-card .card-content > *:first-child {
+  margin-top: 0;
+}
+.service-card .card-content > *:last-child {
+  margin-bottom: 0;
+}
 
 .service-card::after {
-  content: "";
+  content: '';
   grid-area: bar;
   height: 2px;
   background-image: linear-gradient(90deg, var(--grad));
@@ -183,3 +207,474 @@ h1 em {
   box-shadow: 0 2px 8px hsl(0 0% 0% / 0.2);
   white-space: nowrap;
 }
+
+/* ==========================================
+   STICKY NAV + HAMBURGER
+   ========================================== */
+
+.ahg-sticky-nav {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: calc(100% - 40px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 999;
+}
+
+.ahg-nav-logo {
+  display: flex;
+  align-items: center;
+  z-index: 998;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ahg-nav-logo img {
+  height: 45px;
+  width: auto;
+}
+
+.ahg-nav-btn {
+  width: 60px;
+  height: 50px;
+  z-index: 999;
+  cursor: pointer;
+  filter: invert(1);
+}
+
+.ahg-nav-btn .icon {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: #fff;
+}
+
+/* ==========================================
+   TAKEOVER NAV
+   ========================================== */
+
+#takeover-nav {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  left: 0;
+  top: -200%;
+  transition: top 0.5s ease-in-out;
+  z-index: 996;
+}
+
+#takeover-nav.shown {
+  top: 0;
+}
+
+.takeover-inner {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 100vh;
+}
+
+/* Contact column (dark, left on desktop) */
+.nav-contact-col {
+  position: relative;
+  flex: 0 0 58.333%;
+  max-width: 58.333%;
+  min-height: 100vh;
+  background-color: #2b2b2b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 3rem;
+  order: 0;
+}
+
+.nav-bg-topo {
+  position: absolute;
+  inset: 0;
+  background-image: url(https://assets.codepen.io/319606/bg-topographic.svg);
+  background-size: 5000px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.nav-contact-inner {
+  position: relative;
+  max-width: 600px;
+  width: 100%;
+}
+
+.ahg-nav-heading {
+  font-size: 3.5em !important;
+  font-weight: 900 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  color: #efefef !important;
+  line-height: 1.2 !important;
+  margin-bottom: 2.5rem !important;
+}
+
+.dot-green {
+  color: #4d8b23;
+  display: inline;
+}
+
+.ahg-contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+}
+
+.ahg-contact-list li {
+  padding-bottom: 1.25rem;
+}
+
+.ahg-contact-list a,
+.ahg-contact-list span {
+  color: #efefef;
+  text-decoration: none;
+  font-size: 1.1em;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  transition: color 0.25s ease;
+}
+
+.ahg-contact-list a:hover {
+  color: #4d8b23;
+}
+
+.ahg-social {
+  font-size: 0.85em;
+}
+
+.ahg-social a {
+  color: #4d8b23;
+  text-decoration: none;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  transition: color 0.25s ease;
+}
+
+.ahg-social a:hover {
+  color: #efefef;
+}
+
+.ahg-social .sep {
+  margin: 0 0.5rem;
+  color: #efefef;
+}
+
+/* Menu column (green, right on desktop) */
+.nav-menu-col {
+  flex: 0 0 41.667%;
+  max-width: 41.667%;
+  min-height: 100vh;
+  background-color: #4d8b23;
+  display: flex;
+  align-items: center;
+  padding: 5rem 4rem;
+  order: 1;
+}
+
+.ahg-nav-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ahg-nav-links li {
+  padding-bottom: 1rem;
+}
+
+.ahg-nav-links a {
+  color: #efefef;
+  text-decoration: none;
+  font-size: 2.5em;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  transition: color 0.25s ease;
+  display: block;
+}
+
+.ahg-nav-links a:hover {
+  color: #2b2b2b;
+}
+
+/* ==========================================
+   HERO SECTION
+   ========================================== */
+
+.ahg-hero {
+  background-color: #2b2b2b;
+  border-bottom-right-radius: 15vw;
+  position: relative;
+  min-height: 800px;
+  height: 800px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+/* Rounded corner illusion at bottom-left */
+.ahg-hero::before {
+  content: '';
+  background-color: #2b2b2b;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 15vw;
+  height: 15vw;
+  pointer-events: none;
+}
+
+.ahg-hero::after {
+  content: '';
+  background-color: #f9fafb;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 15vw;
+  height: 15vw;
+  border-top-left-radius: 15vw;
+  pointer-events: none;
+}
+
+.video-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-bottom-right-radius: 15vw;
+  pointer-events: none;
+}
+
+#video-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: rotate(180deg);
+}
+
+.gradient-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(43, 43, 43, 0) 0%, rgba(43, 43, 43, 1) 50%);
+  border-bottom-right-radius: 15vw;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.hero-title {
+  font-size: 8vw !important;
+  line-height: 1em !important;
+  font-weight: 900 !important;
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+.blend {
+  mix-blend-mode: difference;
+  color: #efefef;
+  position: relative;
+}
+
+/* ==========================================
+   CUSTOM CURSOR
+   ========================================== */
+
+.custom-cursor {
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #4d8b23;
+  transition:
+    transform 350ms ease,
+    opacity 0.3s ease;
+  transform: translate(-50%, -50%) scale(0.3);
+  z-index: 10000;
+}
+
+.custom-cursor--link {
+  transform: translate(-50%, -50%) scale(1.25);
+}
+
+/* ==========================================
+   CONTACT FORM - NEUMORPHIC STYLE
+   ========================================== */
+
+.contact-content {
+  width: 460px;
+  max-width: 100%;
+  padding: 40px 30px;
+  background-image: linear-gradient(to bottom left, #e0e4e5, #f2f6f9);
+  border-radius: 2rem;
+  box-shadow:
+    inset -2px 2px hsl(0 0% 100% / 1),
+    -20px 20px 40px hsl(0 0% 0% / 0.25);
+}
+
+.contact-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  color: #444447;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.contact-field {
+  height: 50px;
+  width: 100%;
+  display: flex;
+  position: relative;
+  margin-top: 20px;
+}
+
+.contact-input,
+.contact-select {
+  height: 100%;
+  width: 100%;
+  padding-left: 45px;
+  outline: none;
+  border: none;
+  font-size: 16px;
+  background: #e8ecf0;
+  color: #444447;
+  border-radius: 25px;
+  box-shadow:
+    inset 2px 2px 5px #c8ccd0,
+    inset -4px -4px 8px hsl(0 0% 100% / 0.8);
+  transition: box-shadow 0.2s;
+}
+
+.contact-select {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.contact-input:focus,
+.contact-select:focus {
+  box-shadow:
+    inset 1px 1px 3px #c8ccd0,
+    inset -1px -1px 3px hsl(0 0% 100% / 0.8);
+}
+
+.contact-span {
+  position: absolute;
+  color: #444447;
+  width: 50px;
+  line-height: 55px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.contact-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 45px;
+  pointer-events: none;
+  color: #666666;
+  font-size: 15px;
+  transition: opacity 0.2s;
+}
+
+.contact-input:valid ~ .contact-label {
+  opacity: 0;
+}
+
+/* Textarea wrapper */
+.contact-field-textarea {
+  width: 100%;
+  display: flex;
+  position: relative;
+  margin-top: 20px;
+  height: 130px;
+}
+
+.contact-textarea {
+  height: 100%;
+  width: 100%;
+  padding: 14px 14px 14px 45px;
+  outline: none;
+  border: none;
+  font-size: 16px;
+  font-family: inherit;
+  background: #e8ecf0;
+  color: #444447;
+  border-radius: 20px;
+  resize: none;
+  box-shadow:
+    inset 2px 2px 5px #c8ccd0,
+    inset -4px -4px 8px hsl(0 0% 100% / 0.8);
+  transition: box-shadow 0.2s;
+}
+
+.contact-textarea:focus {
+  box-shadow:
+    inset 1px 1px 3px #c8ccd0,
+    inset -1px -1px 3px hsl(0 0% 100% / 0.8);
+}
+
+.contact-field-textarea .contact-span {
+  line-height: 50px;
+}
+
+.contact-field-textarea .contact-label {
+  top: 14px;
+  transform: none;
+}
+
+.contact-textarea:valid ~ .contact-label {
+  opacity: 0;
+}
+
+.contact-button {
+  margin: 20px 0 5px;
+  width: 100%;
+  height: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  background-image: linear-gradient(to bottom left, #e0e4e5, #f2f6f9);
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  color: #444447;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow:
+    inset -2px 2px hsl(0 0% 100% / 1),
+    3px 3px 8px hsl(0 0% 0% / 0.18);
+  transition:
+    box-shadow 0.2s,
+    color 0.2s;
+}
+
+.contact-button:focus,
+.contact-button:hover {
+  color: #8b1a2b;
+  box-shadow:
+    inset -2px 2px hsl(0 0% 100% / 1),
+    5px 5px 14px hsl(0 0% 0% / 0.28);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
