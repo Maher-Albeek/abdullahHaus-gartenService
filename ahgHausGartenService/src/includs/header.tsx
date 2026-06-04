@@ -1,12 +1,19 @@
 import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'HeaderSection',
   setup() {
     const navOpen = ref(false)
+    const router = useRouter()
 
     const toggleNav = () => {
       navOpen.value = !navOpen.value
+    }
+
+    const navigateTo = (path: string, hash?: string) => {
+      router.push(hash ? { path, hash } : path)
+      navOpen.value = false
     }
 
     // Custom cursor
@@ -36,7 +43,7 @@ export default defineComponent({
       cursorEl = document.querySelector('.custom-cursor')
       document.addEventListener('mousemove', onMouseMove)
       document.addEventListener('mouseout', onMouseOut)
-      document.querySelectorAll('a, button, [role="button"]').forEach(el => {
+      document.querySelectorAll('a, button, [role="button"]').forEach((el) => {
         el.addEventListener('mouseover', onLinkOver)
         el.addEventListener('mouseout', onLinkOut)
       })
@@ -58,8 +65,7 @@ export default defineComponent({
               aria-label="Zur Startseite"
               onClick={(e: MouseEvent) => {
                 e.preventDefault()
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-                navOpen.value = false
+                navigateTo('/')
               }}
             >
               <img src="/AHG.webp" alt="AHG Haus-Gartenservice" />
@@ -79,7 +85,10 @@ export default defineComponent({
                   d="M30,50 L70,50 Z"
                   style={{ opacity: navOpen.value ? '0' : '1', transition: 'opacity 0.25s ease' }}
                 />
-                <path id="bottom-line-1" d={navOpen.value ? 'M35,65 L65,35 Z' : 'M30,63 L70,63 Z'} />
+                <path
+                  id="bottom-line-1"
+                  d={navOpen.value ? 'M35,65 L65,35 Z' : 'M30,63 L70,63 Z'}
+                />
               </svg>
             </div>
           </div>
@@ -96,9 +105,15 @@ export default defineComponent({
                     <span class="dot-green">.</span>
                   </h2>
                   <ul class="ahg-contact-list">
-                    <li><a href="tel:+4912345678">+49 123 456 78</a></li>
-                    <li><a href="mailto:info@ahg-service.de">info@ahg-service.de</a></li>
-                    <li><span>Musterstadt, Deutschland</span></li>
+                    <li>
+                      <a href="tel:+4912345678">+49 123 456 78</a>
+                    </li>
+                    <li>
+                      <a href="mailto:info@ahg-service.de">info@ahg-service.de</a>
+                    </li>
+                    <li>
+                      <span>Musterstadt, Deutschland</span>
+                    </li>
                   </ul>
                   <div class="ahg-social">
                     <a href="#">Instagram</a>
@@ -111,11 +126,84 @@ export default defineComponent({
               {/* Menu Column */}
               <div class="nav-col nav-menu-col">
                 <ul class="ahg-nav-links">
-                  <li><a href="/" onClick={(e: MouseEvent) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); toggleNav() }}>Start</a></li>
-                  <li><a href="#leistungen" onClick={toggleNav}>Leistungen</a></li>
-                  <li><a href="#galerie" onClick={toggleNav}>Galerie</a></li>
-                  <li><a href="#about" onClick={toggleNav}>Über uns</a></li>
-                  <li><a href="#contact" onClick={toggleNav}>Kontakt</a></li>
+                  <li>
+                    <a
+                      href="/"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/')
+                      }}
+                    >
+                      Start
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/#leistungen"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/', '#leistungen')
+                      }}
+                    >
+                      Leistungen
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/#galerie"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/', '#galerie')
+                      }}
+                    >
+                      Galerie
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/#about"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/', '#about')
+                      }}
+                    >
+                      Über uns
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/#contact"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/', '#contact')
+                      }}
+                    >
+                      Kontakt
+                    </a>
+                  </li>
+                  <li class="nav-divider"></li>
+                  <li>
+                    <a
+                      href="/impressum"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/impressum')
+                      }}
+                    >
+                      Impressum
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/datenschutz"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/datenschutz')
+                      }}
+                    >
+                      Datenschutz
+                    </a>
+                  </li>
                 </ul>
               </div>
             </div>
