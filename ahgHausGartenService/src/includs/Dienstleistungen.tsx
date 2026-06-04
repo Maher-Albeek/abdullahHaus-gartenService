@@ -99,7 +99,7 @@ export default defineComponent({
           {/* CTA */}
           <div class="mt-14 text-center">
             <a
-              href="/contact"
+              href="#contact"
               class="inline-block bg-brand-red hover:bg-brand-red-light text-white font-bold px-10 py-4 rounded-xl shadow-lg transition-colors text-base"
             >
               Jetzt Angebot anfragen

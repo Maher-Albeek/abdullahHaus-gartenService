@@ -4,9 +4,11 @@
    HERO TEMPLATE STYLES
    ========================================== */
 
-/* Custom cursor – hide default globally */
-* {
-  cursor: none;
+/* Custom cursor – hide default on pointer (mouse) devices only */
+@media (pointer: fine) {
+  * {
+    cursor: none;
+  }
 }
 
 html {
@@ -403,6 +405,95 @@ h1 em {
   color: #2b2b2b;
 }
 
+.nav-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0.5rem 0 1rem;
+  padding: 0 !important;
+  list-style: none;
+}
+
+/* ==========================================
+   NAV – MOBILE RESPONSIVE
+   ========================================== */
+
+@media (max-width: 767px) {
+  .ahg-sticky-nav {
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
+  }
+
+  .ahg-nav-logo img {
+    height: 36px;
+  }
+
+  .ahg-nav-btn {
+    width: 48px;
+    height: 40px;
+  }
+
+  .takeover-inner {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* On mobile: menu column comes first (on top), contact column below */
+  .nav-menu-col {
+    flex: 0 0 auto;
+    max-width: 100%;
+    width: 100%;
+    min-height: auto;
+    padding: 7rem 2rem 3rem;
+    order: 0;
+  }
+
+  .nav-contact-col {
+    flex: 0 0 auto;
+    max-width: 100%;
+    width: 100%;
+    min-height: auto;
+    padding: 2.5rem 2rem 3rem;
+    order: 1;
+  }
+
+  .ahg-nav-heading {
+    font-size: 1.8em !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .ahg-nav-links a {
+    font-size: 1.8em;
+  }
+
+  .ahg-contact-list a,
+  .ahg-contact-list span {
+    font-size: 0.95em;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nav-contact-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding: 5rem 2rem;
+  }
+
+  .nav-menu-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding: 5rem 2.5rem;
+  }
+
+  .ahg-nav-heading {
+    font-size: 2.4em !important;
+  }
+
+  .ahg-nav-links a {
+    font-size: 2em;
+  }
+}
+
 /* ==========================================
    HERO SECTION
    ========================================== */
@@ -496,6 +587,12 @@ h1 em {
 /* ==========================================
    CUSTOM CURSOR
    ========================================== */
+
+@media (pointer: coarse) {
+  .custom-cursor {
+    display: none !important;
+  }
+}
 
 .custom-cursor {
   position: fixed;

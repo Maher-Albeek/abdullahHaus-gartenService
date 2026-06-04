@@ -40,6 +40,7 @@ export default defineComponent({
     const onLinkOut = () => cursorEl?.classList.remove('custom-cursor--link')
 
     onMounted(() => {
+      if (window.matchMedia('(pointer: coarse)').matches) return
       cursorEl = document.querySelector('.custom-cursor')
       document.addEventListener('mousemove', onMouseMove)
       document.addEventListener('mouseout', onMouseOut)

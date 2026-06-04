@@ -10,11 +10,15 @@ export default defineComponent({
         desc: {
             type: String,
             required: true
+        },
+        border: {
+            type: Boolean,
+            default: false
         }
     },
     setup(props) {
         return () => (
-            <section class="py-8 px-4 bg-gray-50">
+            <section class={`py-8 px-4 bg-gray-50 ${props.border ? 'border-t-2 border-green-700 border-b-2 border-green-200' : ''}`} >
 
                 <div class="max-w-6xl mx-auto">
                     <div class="two alt-two">
