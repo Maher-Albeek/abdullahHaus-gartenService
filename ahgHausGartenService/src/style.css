@@ -174,6 +174,26 @@ h1 em {
   grid-area: content;
 }
 
+.service-detail-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+}
+
+.service-detail-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.service-detail-list i {
+  color: #4d8b23;
+  font-size: 0.78rem;
+}
+
 .service-card .card-content > *:first-child {
   margin-top: 0;
 }
@@ -241,6 +261,210 @@ h1 em {
   border-radius: 999px;
   box-shadow: 0 2px 8px hsl(0 0% 0% / 0.2);
   white-space: nowrap;
+}
+
+/* ==========================================
+   SERVICE INFO + FAQ
+   ========================================== */
+
+.service-info-section {
+  background: #fff;
+}
+
+.section-kicker {
+  margin-bottom: 0.65rem;
+  color: #4d8b23;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section-kicker--light {
+  color: #a8e063;
+}
+
+.content-heading {
+  color: #2b2b2b;
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.08;
+}
+
+.content-intro {
+  max-width: 42rem;
+  margin-top: 1rem;
+  color: #666;
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
+.benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2.25rem;
+}
+
+.benefit-card {
+  padding: 1.5rem;
+  border: 1px solid rgba(77, 139, 35, 0.15);
+  border-radius: 1.25rem;
+  background: #f9fafb;
+}
+
+.benefit-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  border-radius: 0.8rem;
+  background: #4d8b23;
+  color: #fff;
+}
+
+.benefit-card h3,
+.concern-item h3 {
+  color: #2b2b2b;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.benefit-card p,
+.concern-item p {
+  margin-top: 0.45rem;
+  color: #666;
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.concerns-panel {
+  padding: clamp(1.75rem, 4vw, 3rem);
+  border-radius: 2rem;
+  background: #2b2b2b;
+  color: #fff;
+}
+
+.concerns-panel > h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(1.75rem, 3vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.concerns-intro {
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.65;
+}
+
+.concern-list {
+  display: grid;
+  gap: 1.4rem;
+  margin-top: 2rem;
+}
+
+.concern-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+}
+
+.concern-item > i {
+  margin-top: 0.2rem;
+  color: #62af2d;
+}
+
+.concern-item h3 {
+  color: #fff;
+}
+
+.concern-item p {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.concerns-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 2rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: 999px;
+  background: #4d8b23;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.faq-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.faq-item {
+  border: 1px solid rgba(43, 43, 43, 0.09);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(43, 43, 43, 0.06);
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
+  color: #2b2b2b;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary i {
+  color: #4d8b23;
+  transition: transform 0.2s ease;
+}
+
+.faq-item[open] summary i {
+  transform: rotate(45deg);
+}
+
+.faq-item p {
+  padding: 0 1.4rem 1.35rem;
+  color: #666;
+  line-height: 1.7;
+}
+
+.faq-contact {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 2rem;
+  color: #666;
+}
+
+.faq-contact a {
+  color: #4d8b23;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faq-contact {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 /* ==========================================

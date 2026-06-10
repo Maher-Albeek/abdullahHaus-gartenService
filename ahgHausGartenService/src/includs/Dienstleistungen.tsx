@@ -6,12 +6,14 @@ const services = [
     icon: 'fa-solid fa-snowflake',
     title: 'Winterdienst',
     desc: 'Schneeräumung und Streudienst – damit Sie sicher unterwegs sind.',
+    details: ['Gehwege und Zufahrten räumen', 'Streudienst nach Bedarf'],
     grad: '#1a6b8b, #85c1e9',
   },
   {
     icon: 'fa-solid fa-window-maximize',
     title: 'Fensterreinigung innen & außen',
     desc: 'Streifenfreie Fenster – innen wie außen, auch in großen Höhen.',
+    details: ['Rahmen und Fensterbänke', 'Privat- und Gewerbeobjekte'],
     grad: '#8B1A2B, #c0392b',
     featured: true,
   },
@@ -19,36 +21,42 @@ const services = [
     icon: 'fa-solid fa-building',
     title: 'Büro- & Arbeitsplatzreinigung',
     desc: 'Regelmäßige Reinigung von Büros und gewerblichen Arbeitsflächen.',
+    details: ['Flexible Reinigungsintervalle', 'Sanitär- und Gemeinschaftsräume'],
      grad: '#4D8B23, #62af2d',
   },
   {
     icon: 'fa-solid fa-broom',
     title: 'Standardreinigung',
     desc: 'Gründliche Reinigung aller Räume – zuverlässig und termingerecht.',
+    details: ['Böden und Oberflächen', 'Küche und Sanitärbereiche'],
     grad: '#8B1A2B, #c0392b',
   },
   {
     icon: 'fa-solid fa-house',
     title: 'Hauswirtschaft',
     desc: 'Hauswirtschaftliche Dienstleistungen für ein gepflegtes Zuhause.',
+    details: ['Individuelle Unterstützung', 'Regelmäßige feste Termine'],
     grad: '#4D8B23, #2ecc71',
   },
   {
     icon: 'fa-solid fa-glass-water',
     title: 'Glasreinigung',
     desc: 'Kristallklare Glasflächen – für Schaufenster, Fassaden und Trennwände.',
+    details: ['Schaufenster und Glasfassaden', 'Glastrennwände und Türen'],
     grad: '#1a6b8b, #5dade2',
   },
   {
     icon: 'fa-solid fa-leaf',
     title: 'Gartenpflege',
     desc: 'Rasenmähen, Heckenschnitt, Bepflanzung und saisonale Gartenpflege.',
+    details: ['Rasen- und Heckenschnitt', 'Saisonale Pflegearbeiten'],
     grad: '#4D8B23, #a8e063',
   },
   {
     icon: 'fa-solid fa-truck-moving',
     title: 'Umzugsreinigung',
     desc: 'Professionelle Reinigung beim Ein- oder Auszug – besenrein bis makellos sauber.',
+    details: ['Endreinigung leerer Räume', 'Küche, Bad und Fenster'],
     grad: '#1a6b8b, #3498db',
 
   },
@@ -56,6 +64,7 @@ const services = [
     icon: 'fa-solid fa-wrench',
     title: 'Kleine Schönheitsreparaturen',
     desc: 'Streichen, Spachteln und kleine Ausbesserungsarbeiten für ein frisches Erscheinungsbild.',
+    details: ['Kleine Ausbesserungen', 'Streich- und Spachtelarbeiten'],
     grad: '#8B1A2B, #f39c12',
   },
 ]
@@ -91,6 +100,14 @@ export default defineComponent({
                 </div>
                 <div class="card-content">
                   <p>{s.desc}</p>
+                  <ul class="service-detail-list">
+                    {s.details.map((detail) => (
+                      <li key={detail}>
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        {detail}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <a
                   href="#contact"

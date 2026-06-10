@@ -182,6 +182,17 @@ export default defineComponent({
                       Kontakt
                     </a>
                   </li>
+                  <li>
+                    <a
+                      href="/#faq"
+                      onClick={(e: MouseEvent) => {
+                        e.preventDefault()
+                        navigateTo('/', '#faq')
+                      }}
+                    >
+                      FAQ
+                    </a>
+                  </li>
                   <li class="nav-divider"></li>
                   <li>
                     <a
