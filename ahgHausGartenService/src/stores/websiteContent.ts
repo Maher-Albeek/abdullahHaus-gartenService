@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
-export type ContentItem = Record<string, string | number>
+export type ContentItem = Record<string, string | number | boolean>
 
 export type WebsiteSection = {
   id: string
@@ -31,6 +31,81 @@ export type WebsiteContent = {
 }
 
 const STORAGE_KEY = 'ahg-website-content'
+
+const defaultServiceItems: ContentItem[] = [
+  {
+    icon: 'fa-solid fa-snowflake',
+    title: 'Winterdienst',
+    desc: 'Schneeräumung und Streudienst – damit Sie sicher unterwegs sind.',
+    details: 'Gehwege und Zufahrten räumen\nStreudienst nach Bedarf',
+    grad: '#1a6b8b, #85c1e9',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-window-maximize',
+    title: 'Fensterreinigung innen & außen',
+    desc: 'Streifenfreie Fenster – innen wie außen, auch in großen Höhen.',
+    details: 'Rahmen und Fensterbänke\nPrivat- und Gewerbeobjekte',
+    grad: '#8B1A2B, #c0392b',
+    featured: true,
+  },
+  {
+    icon: 'fa-solid fa-building',
+    title: 'Büro- & Arbeitsplatzreinigung',
+    desc: 'Regelmäßige Reinigung von Büros und gewerblichen Arbeitsflächen.',
+    details: 'Flexible Reinigungsintervalle\nSanitär- und Gemeinschaftsräume',
+    grad: '#4D8B23, #62af2d',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-broom',
+    title: 'Standardreinigung',
+    desc: 'Gründliche Reinigung aller Räume – zuverlässig und termingerecht.',
+    details: 'Böden und Oberflächen\nKüche und Sanitärbereiche',
+    grad: '#8B1A2B, #c0392b',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-house',
+    title: 'Hauswirtschaft',
+    desc: 'Hauswirtschaftliche Dienstleistungen für ein gepflegtes Zuhause.',
+    details: 'Individuelle Unterstützung\nRegelmäßige feste Termine',
+    grad: '#4D8B23, #2ecc71',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-glass-water',
+    title: 'Glasreinigung',
+    desc: 'Kristallklare Glasflächen – für Schaufenster, Fassaden und Trennwände.',
+    details: 'Schaufenster und Glasfassaden\nGlastrennwände und Türen',
+    grad: '#1a6b8b, #5dade2',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-leaf',
+    title: 'Gartenpflege',
+    desc: 'Rasenmähen, Heckenschnitt, Bepflanzung und saisonale Gartenpflege.',
+    details: 'Rasen- und Heckenschnitt\nSaisonale Pflegearbeiten',
+    grad: '#4D8B23, #a8e063',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-truck-moving',
+    title: 'Umzugsreinigung',
+    desc: 'Professionelle Reinigung beim Ein- oder Auszug – besenrein bis makellos sauber.',
+    details: 'Endreinigung leerer Räume\nKüche, Bad und Fenster',
+    grad: '#1a6b8b, #3498db',
+    featured: false,
+  },
+  {
+    icon: 'fa-solid fa-wrench',
+    title: 'Kleine Schönheitsreparaturen',
+    desc: 'Streichen, Spachteln und kleine Ausbesserungsarbeiten für ein frisches Erscheinungsbild.',
+    details: 'Kleine Ausbesserungen\nStreich- und Spachtelarbeiten',
+    grad: '#8B1A2B, #f39c12',
+    featured: false,
+  },
+]
 
 export const defaultWebsiteContent: WebsiteContent = {
   brand: {
@@ -76,11 +151,7 @@ export const defaultWebsiteContent: WebsiteContent = {
         intro: 'Von der Grundreinigung bis zum Winterdienst – zuverlässig aus einer Hand.',
         buttonLabel: 'Jetzt Angebot anfragen',
       },
-      items: [
-        { title: 'Winterdienst', description: 'Schneeräumung und Streudienst.', icon: 'fa-snowflake' },
-        { title: 'Fensterreinigung', description: 'Streifenfreie Fenster innen und außen.', icon: 'fa-window-maximize' },
-        { title: 'Gartenpflege', description: 'Rasen, Hecken und saisonale Pflege.', icon: 'fa-leaf' },
-      ],
+      items: defaultServiceItems,
     },
     {
       id: 'benefits',
@@ -172,6 +243,36 @@ export const defaultWebsiteContent: WebsiteContent = {
 
 const cloneDefaults = () => JSON.parse(JSON.stringify(defaultWebsiteContent)) as WebsiteContent
 
+const migrateServices = (websiteContent: WebsiteContent) => {
+  const services = websiteContent.sections.find((section) => section.id === 'services')
+  if (!services) return websiteContent
+
+  const hasOldStarterServices =
+    services.items.length <= 3 &&
+    services.items.every((item) => item.details === undefined && item.grad === undefined)
+
+  if (hasOldStarterServices) {
+    services.items = JSON.parse(JSON.stringify(defaultServiceItems)) as ContentItem[]
+    return websiteContent
+  }
+
+  services.items = services.items.map((item) => {
+    const migrated: ContentItem = {
+      ...item,
+      icon: String(item.icon ?? 'fa-solid fa-broom'),
+      desc: String(item.desc ?? item.description ?? ''),
+      details: String(item.details ?? ''),
+      grad: String(item.grad ?? item.gradient ?? '#4D8B23, #62af2d'),
+      featured: item.featured === true || Number(item.featured ?? 0) === 1,
+    }
+    delete migrated.description
+    delete migrated.gradient
+    return migrated
+  })
+
+  return websiteContent
+}
+
 export const useWebsiteContentStore = defineStore('websiteContent', () => {
   const content = ref<WebsiteContent>(cloneDefaults())
   const lastSaved = ref<Date | null>(null)
@@ -179,7 +280,7 @@ export const useWebsiteContentStore = defineStore('websiteContent', () => {
   const load = () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) content.value = JSON.parse(stored) as WebsiteContent
+      if (stored) content.value = migrateServices(JSON.parse(stored) as WebsiteContent)
     } catch {
       content.value = cloneDefaults()
     }
