@@ -1,19 +1,72 @@
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
+import { defineComponent, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+const focusableSelector =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export default defineComponent({
   name: 'HeaderSection',
   setup() {
     const navOpen = ref(false)
+    const navButton = ref<HTMLElement | null>(null)
+    const takeoverNav = ref<HTMLElement | null>(null)
     const router = useRouter()
 
+    const closeNav = (restoreFocus = true) => {
+      navOpen.value = false
+      if (restoreFocus) void nextTick(() => navButton.value?.focus())
+    }
+
+    const openNav = () => {
+      navOpen.value = true
+      void nextTick(() => {
+        takeoverNav.value?.querySelector<HTMLElement>(focusableSelector)?.focus()
+      })
+    }
+
     const toggleNav = () => {
-      navOpen.value = !navOpen.value
+      if (navOpen.value) {
+        closeNav()
+      } else {
+        openNav()
+      }
     }
 
     const navigateTo = (path: string, hash?: string) => {
       router.push(hash ? { path, hash } : path)
-      navOpen.value = false
+      closeNav(false)
+    }
+
+    const onNavKeydown = (event: KeyboardEvent) => {
+      if (!navOpen.value) return
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeNav()
+        return
+      }
+
+      if (event.key !== 'Tab' || !takeoverNav.value || !navButton.value) return
+
+      const focusableElements = [
+        navButton.value,
+        ...takeoverNav.value.querySelectorAll<HTMLElement>(focusableSelector),
+      ]
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+
+      if (!firstElement || !lastElement) return
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      } else if (!focusableElements.includes(document.activeElement as HTMLElement)) {
+        event.preventDefault()
+        ;(event.shiftKey ? lastElement : firstElement).focus()
+      }
     }
 
     // Custom cursor
@@ -40,6 +93,7 @@ export default defineComponent({
     const onLinkOut = () => cursorEl?.classList.remove('custom-cursor--link')
 
     onMounted(() => {
+      document.addEventListener('keydown', onNavKeydown)
       if (window.matchMedia('(pointer: coarse)').matches) return
       cursorEl = document.querySelector('.custom-cursor')
       document.addEventListener('mousemove', onMouseMove)
@@ -53,6 +107,7 @@ export default defineComponent({
     onUnmounted(() => {
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('mouseout', onMouseOut)
+      document.removeEventListener('keydown', onNavKeydown)
     })
 
     return () => (
@@ -72,12 +127,20 @@ export default defineComponent({
               <img src="/AHG.webp" alt="AHG Haus-Gartenservice" />
             </a>
             <div
+              ref={navButton}
               class={`ahg-nav-btn${navOpen.value ? ' open' : ''}`}
               onClick={toggleNav}
               role="button"
               tabindex={0}
+              aria-expanded={navOpen.value}
+              aria-controls="takeover-nav"
               aria-label={navOpen.value ? 'Menü schließen' : 'Menü öffnen'}
-              onKeydown={(e: KeyboardEvent) => e.key === 'Enter' && toggleNav()}
+              onKeydown={(e: KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  toggleNav()
+                }
+              }}
             >
               <svg class="icon" viewBox="20 30 60 40">
                 <path id="top-line-1" d={navOpen.value ? 'M35,35 L65,65 Z' : 'M30,37 L70,37 Z'} />
@@ -95,7 +158,13 @@ export default defineComponent({
           </div>
 
           {/* Takeover Navigation */}
-          <div id="takeover-nav" class={navOpen.value ? 'shown' : ''}>
+          <div
+            ref={takeoverNav}
+            id="takeover-nav"
+            class={navOpen.value ? 'shown' : ''}
+            aria-hidden={!navOpen.value}
+            inert={!navOpen.value}
+          >
             <div class="takeover-inner">
               {/* Contact Column */}
               <div class="nav-col nav-contact-col">

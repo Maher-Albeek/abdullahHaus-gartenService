@@ -1,9 +1,44 @@
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, type PropType } from 'vue'
+
+export type ContactFormData = {
+  name: string
+  email: string
+  service: string
+  message: string
+}
 
 export default defineComponent({
   name: 'ContactSection',
-  setup() {
+  props: {
+    submitContact: {
+      type: Function as PropType<(data: ContactFormData) => Promise<void>>,
+      default: async () => undefined,
+    },
+  },
+  setup(props) {
     const selectedService = ref('')
+    const submissionState = ref<'idle' | 'submitting' | 'success' | 'error'>('idle')
+
+    const handleSubmit = async (event: Event) => {
+      const form = event.currentTarget as HTMLFormElement
+      const formData = new FormData(form)
+
+      submissionState.value = 'submitting'
+
+      try {
+        await props.submitContact({
+          name: String(formData.get('name') ?? ''),
+          email: String(formData.get('email') ?? ''),
+          service: String(formData.get('service') ?? ''),
+          message: String(formData.get('message') ?? ''),
+        })
+        submissionState.value = 'success'
+        form.reset()
+        selectedService.value = ''
+      } catch {
+        submissionState.value = 'error'
+      }
+    }
 
     return () => (
       <section id="contact" class="py-20 px-4 bg-gray-50">
@@ -19,10 +54,24 @@ export default defineComponent({
             {/* ── LEFT: form ── */}
             <div class="contact-content">
               <div class="contact-title">Kontakt</div>
-              <form action="#" onSubmit={(e: Event) => e.preventDefault()}>
+              <form
+                action="#"
+                aria-busy={submissionState.value === 'submitting'}
+                onSubmit={(event: Event) => {
+                  event.preventDefault()
+                  void handleSubmit(event)
+                }}
+              >
                 {/* Name */}
                 <div class="contact-field" style={{ marginTop: '0' }}>
-                  <input required type="text" id="contact-name" class="contact-input" />
+                  <input
+                    required
+                    type="text"
+                    id="contact-name"
+                    name="name"
+                    class="contact-input"
+                    disabled={submissionState.value === 'submitting'}
+                  />
                   <span class="contact-span">
                     <svg
                       viewBox="0 0 512 512"
@@ -43,7 +92,14 @@ export default defineComponent({
 
                 {/* Email */}
                 <div class="contact-field">
-                  <input required type="email" id="contact-email" class="contact-input" />
+                  <input
+                    required
+                    type="email"
+                    id="contact-email"
+                    name="email"
+                    class="contact-input"
+                    disabled={submissionState.value === 'submitting'}
+                  />
                   <span class="contact-span">
                     <svg
                       viewBox="0 0 512 512"
@@ -69,9 +125,11 @@ export default defineComponent({
                   </label>
                   <select
                     id="contact-service"
+                    name="service"
                     aria-label="Dienstleistung auswählen"
                     class="contact-select"
                     value={selectedService.value}
+                    disabled={submissionState.value === 'submitting'}
                     onChange={(e: Event) => {
                       selectedService.value = (e.target as HTMLSelectElement).value
                     }}
@@ -109,8 +167,10 @@ export default defineComponent({
                   <textarea
                     required
                     id="contact-message"
+                    name="message"
                     class="contact-textarea"
                     rows={5}
+                    disabled={submissionState.value === 'submitting'}
                   ></textarea>
                   <span class="contact-span">
                     <svg
@@ -130,10 +190,45 @@ export default defineComponent({
                   </label>
                 </div>
 
+                {/* Privacy confirmation */}
+                <label class="contact-privacy" for="contact-privacy">
+                  <input
+                    required
+                    type="checkbox"
+                    id="contact-privacy"
+                    name="privacy"
+                    class="contact-privacy-checkbox"
+                    disabled={submissionState.value === 'submitting'}
+                  />
+                  <span>
+                    Ich habe die{' '}
+                    <a href="/datenschutz" class="contact-privacy-link">
+                      Datenschutzerklärung
+                    </a>{' '}
+                    gelesen und stimme der Verarbeitung meiner Angaben zur Bearbeitung meiner
+                    Anfrage zu.
+                  </span>
+                </label>
+
                 {/* Submit */}
-                <button type="submit" class="contact-button">
-                  Nachricht senden
+                <button
+                  type="submit"
+                  class="contact-button"
+                  disabled={submissionState.value === 'submitting'}
+                >
+                  {submissionState.value === 'submitting' ? 'Wird gesendet ...' : 'Nachricht senden'}
                 </button>
+
+                {submissionState.value === 'success' && (
+                  <p class="contact-status contact-status--success" role="status">
+                    Vielen Dank! Ihre Nachricht wurde erfolgreich gesendet.
+                  </p>
+                )}
+                {submissionState.value === 'error' && (
+                  <p class="contact-status contact-status--error" role="alert">
+                    Ihre Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.
+                  </p>
+                )}
               </form>
             </div>
 

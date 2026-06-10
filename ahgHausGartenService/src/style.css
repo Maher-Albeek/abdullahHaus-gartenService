@@ -1164,6 +1164,41 @@ h1 em {
   opacity: 0;
 }
 
+.contact-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 20px 4px 0;
+  color: #555;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.contact-privacy-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+  accent-color: #4d8b23;
+}
+
+.contact-privacy-link {
+  color: #4d8b23;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.contact-privacy-link:hover,
+.contact-privacy-link:focus-visible {
+  color: #8b1a2b;
+}
+
+.contact-privacy-checkbox:focus-visible {
+  outline: 2px solid #4d8b23;
+  outline-offset: 3px;
+}
+
 .contact-button {
   margin: 20px 0 5px;
   width: 100%;
@@ -1190,6 +1225,33 @@ h1 em {
   box-shadow:
     inset -2px 2px hsl(0 0% 100% / 1),
     5px 5px 14px hsl(0 0% 0% / 0.28);
+}
+
+.contact-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+  box-shadow: none;
+}
+
+.contact-status {
+  margin: 16px 4px 0;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.contact-status--success {
+  color: #285c1c;
+  background: #edf7e9;
+  border-color: #a8cf9c;
+}
+
+.contact-status--error {
+  color: #7a1725;
+  background: #fbecef;
+  border-color: #df9daa;
 }
 
 /* ==========================================
