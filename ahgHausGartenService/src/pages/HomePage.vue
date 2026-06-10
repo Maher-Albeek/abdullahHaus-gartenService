@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import Header from '../includs/header'
-import Title from '../component/title'
 import Hero from '../includs/Hero'
 import Dienstleistungen from '../includs/Dienstleistungen'
 import ServiceInfo from '../includs/ServiceInfo'
@@ -15,17 +14,12 @@ import Footer from '../includs/footer'
 <template>
   <Header />
   <Hero />
-  <Title title="Unsere Dienstleistungen" desc="Was wir anbieten" />
   <Dienstleistungen />
   <ServiceInfo />
-  <Title title="Galerie" desc="Einblicke in unsere abgeschlossenen Projekte" border />
   <Gallery />
-  <Title title="Über uns" desc="Erfahren Sie mehr über unser Unternehmen" border />
   <About />
-  <Title title="Kundenbewertungen" desc="Was unsere Kunden über uns sagen" border />
   <Feedbacks />
   <Faq />
-  <Title title="Kontakt" desc="Nehmen Sie Kontakt mit uns auf" border />
   <Contact />
   <Footer />
 </template>
