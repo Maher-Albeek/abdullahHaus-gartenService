@@ -1,0 +1,211 @@
+import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
+
+export type ContentItem = Record<string, string | number>
+
+export type WebsiteSection = {
+  id: string
+  label: string
+  description: string
+  enabled: boolean
+  content: ContentItem
+  items: ContentItem[]
+}
+
+export type WebsiteContent = {
+  brand: {
+    businessName: string
+    logoUrl: string
+    primaryColor: string
+    accentColor: string
+  }
+  contact: {
+    phone: string
+    email: string
+    address: string
+    whatsapp: string
+    instagram: string
+    facebook: string
+  }
+  sections: WebsiteSection[]
+}
+
+const STORAGE_KEY = 'ahg-website-content'
+
+export const defaultWebsiteContent: WebsiteContent = {
+  brand: {
+    businessName: 'AHG Haus-Gartenservice',
+    logoUrl: '/AHG.webp',
+    primaryColor: '#4d8b23',
+    accentColor: '#8b1a2b',
+  },
+  contact: {
+    phone: '0176 32093451',
+    email: 'info@ahg-service.de',
+    address: 'Ludwigsburger Str. 49, 71332 Waiblingen',
+    whatsapp: '4917632093451',
+    instagram: '',
+    facebook: '',
+  },
+  sections: [
+    {
+      id: 'hero',
+      label: 'Hero',
+      description: 'First impression, headline and key figures.',
+      enabled: true,
+      content: {
+        eyebrow: 'Haus & Garten in besten Händen',
+        title: 'Abdullah für Haus & Garten',
+        subtitle:
+          'Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und Garten.',
+        teamCount: 8,
+        yearsCount: 12,
+        projectsCount: 350,
+        backgroundVideo: '/hero-bg.mp4',
+      },
+      items: [],
+    },
+    {
+      id: 'services',
+      label: 'Leistungen',
+      description: 'Service cards shown on the homepage.',
+      enabled: true,
+      content: {
+        kicker: 'Unsere Leistungen',
+        title: 'Alles rund um Haus und Garten',
+        intro: 'Von der Grundreinigung bis zum Winterdienst – zuverlässig aus einer Hand.',
+        buttonLabel: 'Jetzt Angebot anfragen',
+      },
+      items: [
+        { title: 'Winterdienst', description: 'Schneeräumung und Streudienst.', icon: 'fa-snowflake' },
+        { title: 'Fensterreinigung', description: 'Streifenfreie Fenster innen und außen.', icon: 'fa-window-maximize' },
+        { title: 'Gartenpflege', description: 'Rasen, Hecken und saisonale Pflege.', icon: 'fa-leaf' },
+      ],
+    },
+    {
+      id: 'benefits',
+      label: 'Vorteile',
+      description: 'Trust-building benefits and service promises.',
+      enabled: true,
+      content: {
+        kicker: 'Ihre Vorteile',
+        title: 'Ein Service, auf den Sie sich verlassen können',
+        intro: 'Klare Absprachen, saubere Ergebnisse und ein unkomplizierter Ablauf.',
+      },
+      items: [
+        { title: 'Transparentes Angebot', description: 'Klare Leistungen und nachvollziehbare Preise.' },
+        { title: 'Verlässliche Termine', description: 'Verbindlich geplant und pünktlich ausgeführt.' },
+      ],
+    },
+    {
+      id: 'gallery',
+      label: 'Galerie',
+      description: 'Project images and captions.',
+      enabled: true,
+      content: {
+        kicker: 'Referenzen',
+        title: 'Einblicke in unsere Arbeit',
+        intro: 'Abgeschlossene Projekte rund um Haus und Garten.',
+      },
+      items: [
+        { imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=900', alt: 'Gartenpflege' },
+        { imageUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=900', alt: 'Gartenprojekt' },
+      ],
+    },
+    {
+      id: 'about',
+      label: 'Über uns',
+      description: 'Company story and about image.',
+      enabled: true,
+      content: {
+        kicker: 'Über uns',
+        title: 'Persönlich. Gründlich. Zuverlässig.',
+        text: 'AHG Haus-Gartenservice ist Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und Garten.',
+        imageUrl: '/about.jpg',
+      },
+      items: [],
+    },
+    {
+      id: 'testimonials',
+      label: 'Bewertungen',
+      description: 'Customer testimonials and ratings.',
+      enabled: true,
+      content: {
+        kicker: 'Kundenstimmen',
+        title: 'Was unsere Kunden sagen',
+      },
+      items: [
+        { name: 'Maria S.', service: 'Gartenpflege', rating: 5, text: 'Absolut professioneller Service!' },
+        { name: 'Thomas K.', service: 'Winterdienst', rating: 5, text: 'Sehr zuverlässig und pünktlich.' },
+      ],
+    },
+    {
+      id: 'faq',
+      label: 'FAQ',
+      description: 'Frequently asked questions.',
+      enabled: true,
+      content: {
+        kicker: 'FAQ',
+        title: 'Häufig gestellte Fragen',
+        intro: 'Schnelle Antworten zum Ablauf und zu unseren Leistungen.',
+      },
+      items: [
+        { question: 'Wie erhalte ich ein Angebot?', answer: 'Kontaktieren Sie uns telefonisch oder über das Kontaktformular.' },
+        { question: 'Kann ich Leistungen kombinieren?', answer: 'Ja, wir stellen Leistungen passend zu Ihrem Bedarf zusammen.' },
+      ],
+    },
+    {
+      id: 'contact',
+      label: 'Kontakt',
+      description: 'Contact form heading and call to action.',
+      enabled: true,
+      content: {
+        kicker: 'Kontakt',
+        title: 'Wie können wir Ihnen helfen?',
+        intro: 'Haben Sie Fragen oder möchten Sie ein individuelles Angebot? Wir freuen uns auf Ihre Nachricht!',
+        buttonLabel: 'Nachricht senden',
+      },
+      items: [],
+    },
+  ],
+}
+
+const cloneDefaults = () => JSON.parse(JSON.stringify(defaultWebsiteContent)) as WebsiteContent
+
+export const useWebsiteContentStore = defineStore('websiteContent', () => {
+  const content = ref<WebsiteContent>(cloneDefaults())
+  const lastSaved = ref<Date | null>(null)
+
+  const load = () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) content.value = JSON.parse(stored) as WebsiteContent
+    } catch {
+      content.value = cloneDefaults()
+    }
+  }
+
+  const save = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(content.value))
+    lastSaved.value = new Date()
+  }
+
+  const reset = () => {
+    content.value = cloneDefaults()
+    save()
+  }
+
+  const moveSection = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= content.value.sections.length) return
+    const sections = content.value.sections
+    ;[sections[index], sections[target]] = [sections[target]!, sections[index]!]
+  }
+
+  const enabledSections = computed(() => content.value.sections.filter((section) => section.enabled))
+
+  load()
+  watch(content, save, { deep: true })
+
+  return { content, enabledSections, lastSaved, save, reset, moveSection }
+})
