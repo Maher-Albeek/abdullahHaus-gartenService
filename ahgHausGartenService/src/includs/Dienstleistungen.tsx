@@ -92,6 +92,14 @@ export default defineComponent({
                 <div class="card-content">
                   <p>{s.desc}</p>
                 </div>
+                <a
+                  href="#contact"
+                  class="card-cta"
+                  aria-label={`Angebot für ${s.title} anfragen`}
+                >
+                  Angebot anfragen
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
               </div>
             ))}
           </div>

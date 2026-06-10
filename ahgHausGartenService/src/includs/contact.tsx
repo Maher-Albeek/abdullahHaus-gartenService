@@ -36,7 +36,7 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <label htmlFor="contact-name" class="contact-label">
+                  <label for="contact-name" class="contact-label">
                     Ihr Name
                   </label>
                 </div>
@@ -57,14 +57,14 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <label htmlFor="contact-email" class="contact-label">
+                  <label for="contact-email" class="contact-label">
                     E-Mail
                   </label>
                 </div>
 
                 {/* Service */}
                 <div class="contact-field">
-                  <label htmlFor="contact-service" class="sr-only">
+                  <label for="contact-service" class="sr-only">
                     Dienstleistung auswählen
                   </label>
                   <select
@@ -125,7 +125,7 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <label htmlFor="contact-message" class="contact-label">
+                  <label for="contact-message" class="contact-label">
                     Ihre Nachricht
                   </label>
                 </div>

@@ -159,7 +159,7 @@ export default defineComponent({
               type="button"
               aria-label="Cookie-Einstellungen öffnen"
               onClick={store.openSettings}
-              class="fixed bottom-5 left-5 z-9998 flex h-12 w-12 items-center justify-center rounded-full bg-brand-dark shadow-lg ring-1 ring-white/10 hover:bg-brand-dark/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors group"
+              class="cookie-settings-fab fixed bottom-5 left-5 z-9998 flex h-12 w-12 items-center justify-center rounded-full bg-brand-dark shadow-lg ring-1 ring-white/10 hover:bg-brand-dark/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors group"
               title="Cookie-Einstellungen"
             >
               {/* Cookie SVG icon */}

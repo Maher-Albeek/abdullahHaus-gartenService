@@ -127,7 +127,7 @@ h1 em {
   border-radius: 2rem;
   gap: 1.5rem;
   display: grid;
-  grid-template: 'title icon' 'content content' 'bar bar' / 1fr auto;
+  grid-template: 'title icon' 'content content' 'cta cta' 'bar bar' / 1fr auto;
   font-family: system-ui, sans-serif;
   color: #444447;
   box-shadow:
@@ -179,6 +179,39 @@ h1 em {
 }
 .service-card .card-content > *:last-child {
   margin-bottom: 0;
+}
+
+.service-card .card-cta {
+  grid-area: cta;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #444447;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    gap 0.2s ease;
+}
+
+.service-card .card-cta i {
+  color: transparent;
+  background: linear-gradient(to right, var(--grad));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.service-card .card-cta:hover,
+.service-card .card-cta:focus-visible {
+  color: color-mix(in srgb, var(--grad) 75%, #222);
+  gap: 0.9rem;
+}
+
+.service-card .card-cta:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--grad) 70%, transparent);
+  outline-offset: 0.35rem;
+  border-radius: 0.2rem;
 }
 
 .service-card::after {
@@ -938,3 +971,76 @@ h1 em {
 /* ==========================================
    RESPONSIVE
    ========================================== */
+
+/* ==========================================
+   MOBILE QUICK CONTACT
+   ========================================== */
+
+.mobile-contact-bar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-contact-bar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 995;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom));
+    background: rgba(43, 43, 43, 0.96);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+  }
+
+  .mobile-contact-action {
+    min-height: 3.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-radius: 999px;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+      filter 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .mobile-contact-action:active {
+    transform: scale(0.98);
+  }
+
+  .mobile-contact-action:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+  }
+
+  .mobile-contact-action i {
+    font-size: 1.25rem;
+  }
+
+  .mobile-contact-action--call {
+    background: #4d8b23;
+  }
+
+  .mobile-contact-action--whatsapp {
+    background: #25d366;
+  }
+
+  .cookie-settings-fab {
+    bottom: calc(5.75rem + env(safe-area-inset-bottom)) !important;
+  }
+}
