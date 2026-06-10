@@ -1,9 +1,12 @@
 import { defineComponent } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useCookieConsentStore } from '../stores/cookieConsent'
 
 export default defineComponent({
   name: 'FooterSection',
   setup() {
+    const cookieStore = useCookieConsentStore()
+
     return () => (
       <footer class="bg-brand-dark text-white pt-12 pb-6">
         <div class="max-w-6xl mx-auto px-4">
@@ -73,32 +76,12 @@ export default defineComponent({
             </div>
           </div>
 
-          {/* Bank info */}
-          <div class="border-t border-white/20 pt-6 mb-6">
-            <h3 class="text-base font-semibold mb-3 tracking-wide uppercase opacity-90">
-              Bankverbindung
-            </h3>
-            <ul class="text-sm opacity-75 space-y-1">
-              <li>
-                Bank: <span class="font-medium">Sparkasse</span>
-              </li>
-              <li>
-                IBAN: <span class="font-medium">DE00 0000 0000 0000 0000 00</span>
-              </li>
-              <li>
-                BIC: <span class="font-medium">XXXXXXXX</span>
-              </li>
-              <li>
-                Kontoinhaber: <span class="font-medium">AHG Haus-Gartenservice</span>
-              </li>
-            </ul>
-          </div>
-
           {/* Bottom bar */}
           <div class="border-t border-white/20 pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs opacity-60">
             <span>
               &copy; {new Date().getFullYear()} AHG Haus-Gartenservice. Alle Rechte vorbehalten.
             </span>
+            <div class="mt-4 text-center text-xs opacity-40">Created by Maher Albeek</div>
             <div class="flex gap-5">
               <RouterLink to="/impressum" class="hover:opacity-100 transition-opacity">
                 Impressum
@@ -106,11 +89,15 @@ export default defineComponent({
               <RouterLink to="/datenschutz" class="hover:opacity-100 transition-opacity">
                 Datenschutz
               </RouterLink>
+              <button
+                type="button"
+                onClick={cookieStore.openSettings}
+                class="hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                Cookie-Einstellungen
+              </button>
             </div>
           </div>
-
-          {/* Credit */}
-          <div class="mt-4 text-center text-xs opacity-40">Created by Maher Albeek</div>
         </div>
       </footer>
     )

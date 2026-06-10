@@ -298,7 +298,7 @@ h1 em {
 .nav-bg-topo {
   position: absolute;
   inset: 0;
-  background-image: url(https://assets.codepen.io/319606/bg-topographic.svg);
+  background-image: url(/bg-topographic.svg);
   background-size: 5000px;
   opacity: 0.1;
   pointer-events: none;
@@ -565,6 +565,7 @@ h1 em {
 }
 
 .hero-content {
+  margin-top: 16rem;
   position: relative;
   text-align: center;
   margin-bottom: 2rem;
@@ -576,6 +577,57 @@ h1 em {
   line-height: 1em !important;
   font-weight: 900 !important;
   font-family: 'Montserrat', sans-serif !important;
+}
+
+.hero-subtitle {
+  font-size: clamp(0.95rem, 1.8vw, 1.3rem);
+  font-weight: 400;
+  font-family: 'Montserrat', sans-serif;
+  margin-top: 1rem;
+  max-width: 520px;
+}
+
+.hero-stats {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hero-stat-number {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  font-family: 'Montserrat', sans-serif;
+  line-height: 1;
+}
+
+.hero-stat-label {
+  font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+  font-weight: 400;
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 3rem;
+  background: rgba(239, 239, 239, 0.35);
+}
+
+@media (max-width: 480px) {
+  .hero-stats {
+    gap: 1.25rem;
+  }
+  .hero-stat-divider {
+    height: 2.2rem;
+  }
 }
 
 .blend {

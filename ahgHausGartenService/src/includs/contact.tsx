@@ -22,7 +22,7 @@ export default defineComponent({
               <form action="#" onSubmit={(e: Event) => e.preventDefault()}>
                 {/* Name */}
                 <div class="contact-field" style={{ marginTop: '0' }}>
-                  <input required type="text" class="contact-input" />
+                  <input required type="text" id="contact-name" class="contact-input" />
                   <span class="contact-span">
                     <svg
                       viewBox="0 0 512 512"
@@ -36,12 +36,14 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <label class="contact-label">Ihr Name</label>
+                  <label htmlFor="contact-name" class="contact-label">
+                    Ihr Name
+                  </label>
                 </div>
 
                 {/* Email */}
                 <div class="contact-field">
-                  <input required type="email" class="contact-input" />
+                  <input required type="email" id="contact-email" class="contact-input" />
                   <span class="contact-span">
                     <svg
                       viewBox="0 0 512 512"
@@ -55,12 +57,19 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <label class="contact-label">E-Mail</label>
+                  <label htmlFor="contact-email" class="contact-label">
+                    E-Mail
+                  </label>
                 </div>
 
                 {/* Service */}
                 <div class="contact-field">
+                  <label htmlFor="contact-service" class="sr-only">
+                    Dienstleistung auswählen
+                  </label>
                   <select
+                    id="contact-service"
+                    aria-label="Dienstleistung auswählen"
                     class="contact-select"
                     value={selectedService.value}
                     onChange={(e: Event) => {
@@ -97,7 +106,12 @@ export default defineComponent({
 
                 {/* Message */}
                 <div class="contact-field-textarea">
-                  <textarea required class="contact-textarea" rows={5}></textarea>
+                  <textarea
+                    required
+                    id="contact-message"
+                    class="contact-textarea"
+                    rows={5}
+                  ></textarea>
                   <span class="contact-span">
                     <svg
                       viewBox="0 0 512 512"
@@ -111,7 +125,9 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <label class="contact-label">Ihre Nachricht</label>
+                  <label htmlFor="contact-message" class="contact-label">
+                    Ihre Nachricht
+                  </label>
                 </div>
 
                 {/* Submit */}
