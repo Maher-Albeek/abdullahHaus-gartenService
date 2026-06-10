@@ -1,0 +1,39 @@
+{
+  "imprint": {
+    "enabled": true,
+    "path": "/impressum",
+    "title": "Impressum",
+    "provider": {
+      "heading": "Angaben gemäß § 5 TMG",
+      "company": "AHG Haus-Gartenservice",
+      "addressLines": ["Musterstraße 1", "12345 Musterstadt", "Deutschland"]
+    },
+    "contact": {
+      "heading": "Kontakt",
+      "phone": "+49 (0) 123 456789",
+      "email": "info@ahg-hausgartenservice.de"
+    },
+    "responsiblePerson": {
+      "heading": "Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV",
+      "name": "Abdullah Mustermann",
+      "addressLines": ["Musterstraße 1", "12345 Musterstadt"]
+    },
+    "disclaimerSections": [
+      { "id": "content-liability", "heading": "Haftung für Inhalte", "text": "Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen." },
+      { "id": "link-liability", "heading": "Haftung für Links", "text": "Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich." },
+      { "id": "copyright", "heading": "Urheberrecht", "text": "Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers." }
+    ]
+  },
+  "privacy": {
+    "enabled": true,
+    "path": "/datenschutz",
+    "title": "Datenschutzerklärung",
+    "sections": [
+      { "id": "overview", "order": 1, "heading": "1. Datenschutz auf einen Blick", "content": [{ "heading": "Allgemeine Hinweise", "text": "Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen. Personenbezogene Daten sind alle Daten, mit denen Sie persönlich identifiziert werden können." }, { "heading": "Datenerfassung auf dieser Website", "text": "Die Datenverarbeitung auf dieser Website erfolgt durch den Websitebetreiber. Dessen Kontaktdaten können Sie dem Abschnitt „Hinweis zur Verantwortlichen Stelle“ in dieser Datenschutzerklärung entnehmen." }] },
+      { "id": "controller", "order": 2, "heading": "2. Verantwortliche Stelle", "content": [{ "heading": "", "text": "AHG Haus-Gartenservice\nMusterstraße 1\n12345 Musterstadt\n\nTelefon: +49 (0) 123 456789\nE-Mail: info@ahg-hausgartenservice.de" }] },
+      { "id": "collection", "order": 3, "heading": "3. Datenerfassung auf dieser Website", "content": [{ "heading": "Cookies", "text": "Diese Website verwendet keine Cookies." }, { "heading": "Server-Log-Dateien", "text": "Der Provider der Seiten erhebt und speichert automatisch Informationen in sogenannten Server-Log-Dateien, die Ihr Browser automatisch an uns übermittelt." }, { "heading": "Kontaktformular", "text": "Wenn Sie uns per Kontaktformular Anfragen zukommen lassen, werden Ihre Angaben zur Bearbeitung der Anfrage und für Anschlussfragen gespeichert. Diese Daten geben wir nicht ohne Ihre Einwilligung weiter." }] },
+      { "id": "rights", "order": 4, "heading": "4. Ihre Rechte", "content": [{ "heading": "", "text": "Sie haben jederzeit das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerruf Ihrer Einwilligung sowie ein Beschwerderecht bei der zuständigen Aufsichtsbehörde." }] },
+      { "id": "analytics", "order": 5, "heading": "5. Analyse-Tools und Werbung", "content": [{ "heading": "", "text": "Diese Website verwendet keine Analyse-Tools oder Tracking-Dienste von Drittanbietern, zum Beispiel Google Analytics." }] }
+    ]
+  }
+}

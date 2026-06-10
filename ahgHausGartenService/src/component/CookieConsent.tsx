@@ -1,11 +1,17 @@
 import { defineComponent, Transition } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useCookieConsentStore } from '../stores/cookieConsent'
+import cookieConsent from '../data/cookie-consent.json'
 
 /* ------------------------------------------------------------------ */
 /*  Cookie category metadata                                            */
 /* ------------------------------------------------------------------ */
-const categories = [
+const categories = cookieConsent.categories.map((category) => ({
+  ...category,
+  key: category.key as 'necessary' | 'functional' | 'statistics' | 'marketing',
+}))
+/*
+const legacyCategories = [
   {
     key: 'necessary' as const,
     label: 'Notwendige Cookies',
@@ -47,6 +53,7 @@ const categories = [
     provider: 'Werbepartner',
   },
 ]
+*/
 
 /* ------------------------------------------------------------------ */
 /*  Toggle switch                                                       */
@@ -134,11 +141,7 @@ export default defineComponent({
         ))}
 
         {/* Legal notice */}
-        <p class="text-xs text-gray-500 leading-relaxed pt-1">
-          Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO i. V. m. § 25 TTDSG. Ihre Einwilligung ist
-          freiwillig und kann jederzeit widerrufen werden. Der Widerruf berührt nicht die
-          Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
-        </p>
+        <p class="text-xs text-gray-500 leading-relaxed pt-1">{cookieConsent.legalNotice}</p>
       </div>
     )
 
@@ -157,10 +160,10 @@ export default defineComponent({
           {store.decided && !store.showBanner && (
             <button
               type="button"
-              aria-label="Cookie-Einstellungen öffnen"
+              aria-label={cookieConsent.buttons.openSettingsAriaLabel}
               onClick={store.openSettings}
               class="cookie-settings-fab fixed bottom-5 left-5 z-9998 flex h-12 w-12 items-center justify-center rounded-full bg-brand-dark shadow-lg ring-1 ring-white/10 hover:bg-brand-dark/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors group"
-              title="Cookie-Einstellungen"
+              title={cookieConsent.heading}
             >
               {/* Cookie SVG icon */}
               <svg
@@ -200,7 +203,7 @@ export default defineComponent({
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Cookie-Einstellungen"
+              aria-label={cookieConsent.heading}
               class="fixed bottom-0 left-0 right-0 z-9999 p-4 md:p-6"
             >
               <div class="mx-auto max-w-3xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
@@ -219,7 +222,7 @@ export default defineComponent({
                       d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-1.849-.42-3.6-1.168-5.168"
                     />
                   </svg>
-                  <h2 class="text-white font-semibold text-base flex-1">Cookie-Einstellungen</h2>
+                  <h2 class="text-white font-semibold text-base flex-1">{cookieConsent.heading}</h2>
                   {store.decided && (
                     <button
                       type="button"
@@ -278,7 +281,7 @@ export default defineComponent({
                     onClick={store.acceptAll}
                     class="flex-1 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 transition-colors"
                   >
-                    Alle akzeptieren
+                    {cookieConsent.buttons.acceptAll}
                   </button>
 
                   {/* Reject All – equal prominence */}
@@ -287,7 +290,7 @@ export default defineComponent({
                     onClick={store.rejectAll}
                     class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 transition-colors"
                   >
-                    Nur notwendige
+                    {cookieConsent.buttons.necessaryOnly}
                   </button>
 
                   {/* Settings / Save toggle */}
@@ -297,7 +300,7 @@ export default defineComponent({
                       onClick={() => (store.showSettings = true)}
                       class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 transition-colors"
                     >
-                      Einstellungen
+                      {cookieConsent.buttons.settings}
                     </button>
                   ) : (
                     <button
@@ -305,7 +308,7 @@ export default defineComponent({
                       onClick={store.saveSelection}
                       class="flex-1 rounded-lg border border-brand-green bg-brand-green/10 px-4 py-2.5 text-sm font-semibold text-brand-green hover:bg-brand-green/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 transition-colors"
                     >
-                      Auswahl speichern
+                      {cookieConsent.buttons.saveSelection}
                     </button>
                   )}
                 </div>

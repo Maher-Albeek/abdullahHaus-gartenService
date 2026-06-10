@@ -1,0 +1,39 @@
+{
+  "siteName": "AHG Haus-Gartenservice",
+  "shortName": "AHG",
+  "defaultLocale": "de-DE",
+  "logo": {
+    "src": "/AHG.webp",
+    "alt": "AHG Haus-Gartenservice"
+  },
+  "contact": {
+    "email": "info@ahg-service.de",
+    "phoneDisplay": "0176 32093451",
+    "phoneHref": "tel:+4917632093451",
+    "address": {
+      "street": "Ludwigsburger Str. 49",
+      "postalCode": "71332",
+      "city": "Waiblingen",
+      "country": "Deutschland"
+    }
+  },
+  "socialLinks": [
+    {
+      "id": "instagram",
+      "label": "Instagram",
+      "url": "#",
+      "enabled": true
+    },
+    {
+      "id": "facebook",
+      "label": "Facebook",
+      "url": "#",
+      "enabled": true
+    }
+  ],
+  "seo": {
+    "defaultTitle": "AHG Haus-Gartenservice",
+    "defaultDescription": "Professionelle Pflege und Instandhaltung von Haus und Garten.",
+    "ogImage": "/AHG.webp"
+  }
+}

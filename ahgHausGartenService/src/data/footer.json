@@ -1,0 +1,28 @@
+{
+  "id": "footer",
+  "enabled": true,
+  "brandText": "Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und Garten.",
+  "contactHeading": "Kontakt",
+  "contact": {
+    "phoneDisplay": "+49 123 456 78",
+    "phoneHref": "tel:+4912345678",
+    "email": "info@ahg-service.de",
+    "address": "Musterstraße 1, 12345 Musterstadt"
+  },
+  "navigationHeading": "Navigation",
+  "navigation": [
+    { "id": "home", "label": "Startseite", "path": "/", "enabled": true, "order": 1 },
+    { "id": "services", "label": "Leistungen", "path": "/#leistungen", "enabled": true, "order": 2 },
+    { "id": "gallery", "label": "Galerie", "path": "/#galerie", "enabled": true, "order": 3 },
+    { "id": "about", "label": "Über uns", "path": "/#about", "enabled": true, "order": 4 },
+    { "id": "contact", "label": "Kontakt", "path": "/#contact", "enabled": true, "order": 5 }
+  ],
+  "copyrightOwner": "AHG Haus-Gartenservice",
+  "copyrightText": "Alle Rechte vorbehalten.",
+  "creatorCredit": "Created by Maher Albeek",
+  "legalLinks": [
+    { "id": "imprint", "label": "Impressum", "path": "/impressum", "enabled": true, "order": 1 },
+    { "id": "privacy", "label": "Datenschutz", "path": "/datenschutz", "enabled": true, "order": 2 },
+    { "id": "cookies", "label": "Cookie-Einstellungen", "action": "openCookieSettings", "enabled": true, "order": 3 }
+  ]
+}

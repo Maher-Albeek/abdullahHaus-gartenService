@@ -1,0 +1,16 @@
+{
+  "id": "feedbacks",
+  "enabled": true,
+  "order": 6,
+  "kicker": "Kundenstimmen",
+  "heading": "Das sagen unsere Kunden",
+  "intro": "Erfahrungen mit unserem Haus- und Gartenservice aus erster Hand.",
+  "reviews": [
+    { "id": "review-01", "order": 1, "enabled": true, "name": "Maria S.", "rating": 5, "text": "Absolut professioneller Service! Der Garten sieht nach jedem Besuch traumhaft aus. Ich kann AHG Haus-Gartenservice nur wärmstens empfehlen.", "service": "Gartenpflege" },
+    { "id": "review-02", "order": 2, "enabled": true, "name": "Thomas K.", "rating": 5, "text": "Sehr zuverlässig und pünktlich. Der Winterdienst hat uns in dieser Saison wirklich geholfen. Wir fühlen uns bei jedem Wetter sicher.", "service": "Winterdienst" },
+    { "id": "review-03", "order": 3, "enabled": true, "name": "Sandra B.", "rating": 5, "text": "Die Fensterreinigung war makellos – innen und außen blitzsauber. Das Team ist freundlich, diskret und arbeitet sehr gründlich.", "service": "Fensterreinigung" },
+    { "id": "review-04", "order": 4, "enabled": true, "name": "Klaus M.", "rating": 5, "text": "Seit zwei Jahren nutze ich den Service für mein Büro. Die Qualität ist konstant hoch und der Preis ist fair. Sehr empfehlenswert!", "service": "Büroreinigung" },
+    { "id": "review-05", "order": 5, "enabled": true, "name": "Petra H.", "rating": 5, "text": "Beim Auszug half uns das Team mit einer blitzschnellen Umzugsreinigung. Die Wohnung war in einem perfekten Zustand – wir bekamen die volle Kaution zurück.", "service": "Umzugsreinigung" },
+    { "id": "review-06", "order": 6, "enabled": true, "name": "Ahmed R.", "rating": 5, "text": "Hervorragende Arbeit bei der Heckenpflege und Rasenmahd. Freundliches Team, faire Preise und immer termingerecht. Danke!", "service": "Gartenpflege" }
+  ]
+}

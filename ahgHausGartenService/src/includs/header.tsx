@@ -1,8 +1,9 @@
-import { defineComponent, ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { defineComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import header from '../data/header.json'
+import site from '../data/site.json'
 
-const focusableSelector =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export default defineComponent({
   name: 'HeaderSection',
@@ -11,289 +12,86 @@ export default defineComponent({
     const navButton = ref<HTMLElement | null>(null)
     const takeoverNav = ref<HTMLElement | null>(null)
     const router = useRouter()
+    const navigation = header.navigation.filter((item) => item.enabled).sort((a, b) => a.order - b.order)
+    const legalNavigation = header.legalNavigation.filter((item) => item.enabled).sort((a, b) => a.order - b.order)
+    const socialLinks = site.socialLinks.filter((item) => item.enabled)
 
     const closeNav = (restoreFocus = true) => {
       navOpen.value = false
       if (restoreFocus) void nextTick(() => navButton.value?.focus())
     }
-
     const openNav = () => {
       navOpen.value = true
-      void nextTick(() => {
-        takeoverNav.value?.querySelector<HTMLElement>(focusableSelector)?.focus()
-      })
+      void nextTick(() => takeoverNav.value?.querySelector<HTMLElement>(focusableSelector)?.focus())
     }
-
-    const toggleNav = () => {
-      if (navOpen.value) {
-        closeNav()
-      } else {
-        openNav()
-      }
-    }
-
-    const navigateTo = (path: string, hash?: string) => {
-      router.push(hash ? { path, hash } : path)
+    const toggleNav = () => navOpen.value ? closeNav() : openNav()
+    const navigateTo = (target: string) => {
+      const [path, hash] = target.split('#')
+      void router.push(hash ? { path: path || '/', hash: `#${hash}` } : target)
       closeNav(false)
     }
-
     const onNavKeydown = (event: KeyboardEvent) => {
       if (!navOpen.value) return
-
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        closeNav()
-        return
-      }
-
+      if (event.key === 'Escape') { event.preventDefault(); closeNav(); return }
       if (event.key !== 'Tab' || !takeoverNav.value || !navButton.value) return
-
-      const focusableElements = [
-        navButton.value,
-        ...takeoverNav.value.querySelectorAll<HTMLElement>(focusableSelector),
-      ]
-      const firstElement = focusableElements[0]
-      const lastElement = focusableElements[focusableElements.length - 1]
-
-      if (!firstElement || !lastElement) return
-
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault()
-        lastElement.focus()
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault()
-        firstElement.focus()
-      } else if (!focusableElements.includes(document.activeElement as HTMLElement)) {
-        event.preventDefault()
-        ;(event.shiftKey ? lastElement : firstElement).focus()
-      }
+      const elements = [navButton.value, ...takeoverNav.value.querySelectorAll<HTMLElement>(focusableSelector)]
+      const first = elements[0]
+      const last = elements[elements.length - 1]
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
     }
 
-    // Custom cursor
-    let cursorEl: HTMLElement | null = null
-    let cursorVisible = false
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!cursorEl) return
-      cursorEl.style.left = e.clientX + 'px'
-      cursorEl.style.top = e.clientY + 'px'
-      if (!cursorVisible) {
-        cursorEl.style.opacity = '1'
-        cursorVisible = true
-      }
+    let cursor: HTMLElement | null = null
+    const onMouseMove = (event: MouseEvent) => {
+      if (!cursor) return
+      cursor.style.left = `${event.clientX}px`; cursor.style.top = `${event.clientY}px`; cursor.style.opacity = '1'
     }
-
-    const onMouseOut = () => {
-      if (!cursorEl) return
-      cursorEl.style.opacity = '0'
-      cursorVisible = false
-    }
-
-    const onLinkOver = () => cursorEl?.classList.add('custom-cursor--link')
-    const onLinkOut = () => cursorEl?.classList.remove('custom-cursor--link')
-
+    const onMouseOut = () => { if (cursor) cursor.style.opacity = '0' }
     onMounted(() => {
       document.addEventListener('keydown', onNavKeydown)
       if (window.matchMedia('(pointer: coarse)').matches) return
-      cursorEl = document.querySelector('.custom-cursor')
+      cursor = document.querySelector('.custom-cursor')
       document.addEventListener('mousemove', onMouseMove)
       document.addEventListener('mouseout', onMouseOut)
-      document.querySelectorAll('a, button, [role="button"]').forEach((el) => {
-        el.addEventListener('mouseover', onLinkOver)
-        el.addEventListener('mouseout', onLinkOut)
-      })
     })
-
     onUnmounted(() => {
+      document.removeEventListener('keydown', onNavKeydown)
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('mouseout', onMouseOut)
-      document.removeEventListener('keydown', onNavKeydown)
     })
 
-    return () => (
-      <>
-        <header>
-          {/* Sticky Navigation */}
-          <div class="ahg-sticky-nav">
-            <a
-              class="ahg-nav-logo"
-              href="/"
-              aria-label="Zur Startseite"
-              onClick={(e: MouseEvent) => {
-                e.preventDefault()
-                navigateTo('/')
-              }}
-            >
-              <img src="/AHG.webp" alt="AHG Haus-Gartenservice" />
-            </a>
-            <div
-              ref={navButton}
-              class={`ahg-nav-btn${navOpen.value ? ' open' : ''}`}
-              onClick={toggleNav}
-              role="button"
-              tabindex={0}
-              aria-expanded={navOpen.value}
-              aria-controls="takeover-nav"
-              aria-label={navOpen.value ? 'Menü schließen' : 'Menü öffnen'}
-              onKeydown={(e: KeyboardEvent) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  toggleNav()
-                }
-              }}
-            >
-              <svg class="icon" viewBox="20 30 60 40">
-                <path id="top-line-1" d={navOpen.value ? 'M35,35 L65,65 Z' : 'M30,37 L70,37 Z'} />
-                <path
-                  id="middle-line-1"
-                  d="M30,50 L70,50 Z"
-                  style={{ opacity: navOpen.value ? '0' : '1', transition: 'opacity 0.25s ease' }}
-                />
-                <path
-                  id="bottom-line-1"
-                  d={navOpen.value ? 'M35,65 L65,35 Z' : 'M30,63 L70,63 Z'}
-                />
-              </svg>
+    const navLink = (item: { id: string; label: string; path: string }) => (
+      <li key={item.id}><a href={item.path} onClick={(event: MouseEvent) => { event.preventDefault(); navigateTo(item.path) }}>{item.label}</a></li>
+    )
+    return () =>
+      header.enabled && (
+        <>
+          <header id={header.id}>
+            <div class="ahg-sticky-nav">
+              <a class="ahg-nav-logo" href={header.logoLink} aria-label={header.logoAriaLabel} onClick={(event: MouseEvent) => { event.preventDefault(); navigateTo(header.logoLink) }}>
+                <img src={site.logo.src} alt={site.logo.alt} />
+              </a>
+              <div ref={navButton} class={`ahg-nav-btn${navOpen.value ? ' open' : ''}`} onClick={toggleNav} role="button" tabindex={0} aria-expanded={navOpen.value} aria-controls="takeover-nav" aria-label={navOpen.value ? header.menuCloseLabel : header.menuOpenLabel} onKeydown={(event: KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleNav() } }}>
+                <svg class="icon" viewBox="20 30 60 40"><path d={navOpen.value ? 'M35,35 L65,65 Z' : 'M30,37 L70,37 Z'} /><path d="M30,50 L70,50 Z" style={{ opacity: navOpen.value ? '0' : '1' }} /><path d={navOpen.value ? 'M35,65 L65,35 Z' : 'M30,63 L70,63 Z'} /></svg>
+              </div>
             </div>
-          </div>
-
-          {/* Takeover Navigation */}
-          <div
-            ref={takeoverNav}
-            id="takeover-nav"
-            class={navOpen.value ? 'shown' : ''}
-            aria-hidden={!navOpen.value}
-            inert={!navOpen.value}
-          >
-            <div class="takeover-inner">
-              {/* Contact Column */}
-              <div class="nav-col nav-contact-col">
-                <div class="nav-bg-topo"></div>
-                <div class="nav-contact-inner">
-                  <h2 class="ahg-nav-heading">
-                    Ihr zuverlässiger Partner für Haus &amp; Garten
-                    <span class="dot-green">.</span>
-                  </h2>
-                  <ul class="ahg-contact-list">
-                    <li>
-                      <a href="tel:+4912345678">+49 123 456 78</a>
-                    </li>
-                    <li>
-                      <a href="mailto:info@ahg-service.de">info@ahg-service.de</a>
-                    </li>
-                    <li>
-                      <span>Musterstadt, Deutschland</span>
-                    </li>
-                  </ul>
-                  <div class="ahg-social">
-                    <a href="#">Instagram</a>
-                    <span class="sep">|</span>
-                    <a href="#">Facebook</a>
+            <div ref={takeoverNav} id="takeover-nav" class={navOpen.value ? 'shown' : ''} aria-hidden={!navOpen.value} inert={!navOpen.value}>
+              <div class="takeover-inner">
+                <div class="nav-col nav-contact-col">
+                  <div class="nav-bg-topo"></div>
+                  <div class="nav-contact-inner">
+                    <h2 class="ahg-nav-heading">{header.contactHeading}</h2>
+                    <ul class="ahg-contact-list"><li><a href={header.contact.phoneHref}>{header.contact.phoneDisplay}</a></li><li><a href={`mailto:${header.contact.email}`}>{header.contact.email}</a></li><li><span>{header.contact.location}</span></li></ul>
+                    <div class="ahg-social">{socialLinks.map((item, index) => <><a key={item.id} href={item.url}>{item.label}</a>{index < socialLinks.length - 1 && <span class="sep">|</span>}</>)}</div>
                   </div>
                 </div>
-              </div>
-
-              {/* Menu Column */}
-              <div class="nav-col nav-menu-col">
-                <ul class="ahg-nav-links">
-                  <li>
-                    <a
-                      href="/"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/')
-                      }}
-                    >
-                      Start
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/#leistungen"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/', '#leistungen')
-                      }}
-                    >
-                      Leistungen
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/#galerie"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/', '#galerie')
-                      }}
-                    >
-                      Galerie
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/#about"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/', '#about')
-                      }}
-                    >
-                      Über uns
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/#contact"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/', '#contact')
-                      }}
-                    >
-                      Kontakt
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/#faq"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/', '#faq')
-                      }}
-                    >
-                      FAQ
-                    </a>
-                  </li>
-                  <li class="nav-divider"></li>
-                  <li>
-                    <a
-                      href="/impressum"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/impressum')
-                      }}
-                    >
-                      Impressum
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/datenschutz"
-                      onClick={(e: MouseEvent) => {
-                        e.preventDefault()
-                        navigateTo('/datenschutz')
-                      }}
-                    >
-                      Datenschutz
-                    </a>
-                  </li>
-                </ul>
+                <div class="nav-col nav-menu-col"><ul class="ahg-nav-links">{navigation.map(navLink)}<li class="nav-divider"></li>{legalNavigation.map(navLink)}</ul></div>
               </div>
             </div>
-          </div>
-        </header>
-
-        {/* Custom cursor */}
-        <div class="custom-cursor" aria-hidden="true"></div>
-      </>
-    )
+          </header>
+          <div class="custom-cursor" aria-hidden="true"></div>
+        </>
+      )
   },
 })

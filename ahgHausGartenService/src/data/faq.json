@@ -1,0 +1,20 @@
+{
+  "id": "faq",
+  "enabled": true,
+  "order": 7,
+  "kicker": "FAQ",
+  "heading": "Häufig gestellte Fragen",
+  "intro": "Hier finden Sie schnelle Antworten zum Ablauf und zu unseren Leistungen.",
+  "contactPrompt": "Noch eine Frage offen?",
+  "contactCta": {
+    "label": "Direkt Kontakt aufnehmen",
+    "href": "#contact"
+  },
+  "items": [
+    { "id": "offer", "order": 1, "enabled": true, "openByDefault": true, "question": "Wie erhalte ich ein Angebot?", "answer": "Senden Sie uns Ihre Anfrage über das Kontaktformular oder rufen Sie uns an. Nach einer kurzen Abstimmung zu Objekt, Leistung und gewünschtem Termin erhalten Sie ein individuelles Angebot." },
+    { "id": "recurring", "order": 2, "enabled": true, "openByDefault": false, "question": "Sind auch regelmäßige Termine möglich?", "answer": "Ja. Viele Leistungen bieten wir einmalig oder in einem passenden regelmäßigen Rhythmus an, zum Beispiel wöchentlich, zweiwöchentlich oder saisonal." },
+    { "id": "required-info", "order": 3, "enabled": true, "openByDefault": false, "question": "Welche Informationen benötigen Sie für eine Anfrage?", "answer": "Hilfreich sind die gewünschte Leistung, die ungefähre Größe oder Anzahl der Flächen, der Standort und Ihr Wunschtermin. Fotos können die erste Einschätzung zusätzlich erleichtern." },
+    { "id": "adjust-scope", "order": 4, "enabled": true, "openByDefault": false, "question": "Kann der Leistungsumfang später angepasst werden?", "answer": "Ja. Wenn sich Ihr Bedarf ändert, stimmen wir zusätzliche oder reduzierte Aufgaben vor dem nächsten Einsatz mit Ihnen ab." },
+    { "id": "customers", "order": 5, "enabled": true, "openByDefault": false, "question": "Für wen bieten Sie Ihre Leistungen an?", "answer": "Wir unterstützen Privathaushalte, Vermieter, Büros und kleinere Gewerbebetriebe bei Arbeiten rund um Haus, Reinigung und Garten." }
+  ]
+}
