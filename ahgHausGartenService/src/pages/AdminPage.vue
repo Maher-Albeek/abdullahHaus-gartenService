@@ -836,21 +836,7 @@ const showNotice = (message: string) => {
           <button type="button" class="admin-reset" @click="resetContent"><i class="fa-solid fa-arrow-rotate-left"></i> Auf Standardinhalte zurücksetzen</button>
         </div>
 
-        <aside class="admin-preview">
-          <div class="admin-preview-label"><span>Live-Vorschau</span><i class="fa-solid fa-desktop"></i></div>
-          <div class="preview-window" :style="{ '--preview-green': store.content.brand.primaryColor, '--preview-red': store.content.brand.accentColor }">
-            <div class="preview-browser"><i></i><i></i><i></i><span>{{ store.content.brand.businessName }}</span></div>
-            <div class="preview-page">
-              <img :src="store.content.brand.logoUrl" alt="" />
-              <p>{{ activeSection.content.kicker || activeSection.label }}</p>
-              <h3>{{ activeSection.content.title || activeSection.label }}</h3>
-              <span>{{ activeSection.content.intro || activeSection.content.subtitle || activeSection.content.text || activeSection.description }}</span>
-              <div v-if="activeSection.items.length" class="preview-items">
-                <div v-for="(item, index) in activeSection.items.slice(0, 3)" :key="index"><b>{{ item.title || item.question || item.name || item.alt }}</b><small>{{ item.desc || item.description || item.answer || item.text || '' }}</small></div>
-              </div>
-              <button>{{ activeSection.content.buttonLabel || 'Mehr erfahren' }}</button>
-            </div>
-          </div>
+        <aside class="admin-order-sidebar">
           <div class="admin-order">
             <h3>Reihenfolge</h3>
             <div v-for="(section, index) in store.content.sections" :key="section.id">

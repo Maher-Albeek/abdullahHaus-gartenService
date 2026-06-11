@@ -18,9 +18,9 @@ export default defineComponent({
       <section id="galerie" class="py-20 px-4 bg-gray-50">
         <div class="max-w-6xl mx-auto">
           <div class="text-center mb-14">
-            <p class="mt-4 text-gray-500 text-lg max-w-2xl mx-auto">
-              {String(section.value?.content.intro ?? '')}
-            </p>
+            <p class="section-kicker">{String(section.value?.content.kicker ?? '')}</p>
+            <h2 class="content-heading">{String(section.value?.content.title ?? '')}</h2>
+            <p class="content-intro mx-auto">{String(section.value?.content.intro ?? '')}</p>
           </div>
 
           <div class="block sm:hidden">

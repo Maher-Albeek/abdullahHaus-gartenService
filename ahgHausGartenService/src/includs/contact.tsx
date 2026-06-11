@@ -47,12 +47,11 @@ export default defineComponent({
     return () => (
       <section id="contact" class="py-20 px-4 bg-gray-50">
         <div class="max-w-6xl mx-auto">
-          <p
-            class="text-center mb-10 max-w-2xl mx-auto"
-            style={{ color: '#444447', fontSize: '1.1rem' }}
-          >
-            {String(section.value?.content.intro ?? '')}
-          </p>
+          <div class="text-center mb-10">
+            <p class="section-kicker">{String(section.value?.content.kicker ?? '')}</p>
+            <h2 class="content-heading">{String(section.value?.content.title ?? '')}</h2>
+            <p class="content-intro mx-auto">{String(section.value?.content.intro ?? '')}</p>
+          </div>
           <div class="contact-wrapper">
             {/* ── LEFT: form ── */}
             <div class="contact-content">

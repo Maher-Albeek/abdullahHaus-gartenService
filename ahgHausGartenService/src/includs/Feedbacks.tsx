@@ -102,6 +102,11 @@ export default defineComponent({
     return () => (
       <section id="feedbacks" class="py-20 px-4 bg-white overflow-hidden">
         <div class="max-w-6xl mx-auto px-6">
+          <div class="text-center mb-14">
+            <p class="section-kicker">{String(section.value?.content.kicker ?? '')}</p>
+            <h2 class="content-heading">{String(section.value?.content.title ?? '')}</h2>
+          </div>
+
           <div class="relative">
             {/* Slider viewport */}
             <div class="overflow-hidden" onTouchstart={onTouchStart} onTouchend={onTouchEnd}>

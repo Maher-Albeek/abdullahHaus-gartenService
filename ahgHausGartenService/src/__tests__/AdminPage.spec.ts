@@ -9,6 +9,14 @@ describe('AdminPage service modal', () => {
     localStorage.clear()
   })
 
+  it('does not show a live preview in admin panels', () => {
+    const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
+
+    expect(wrapper.text()).not.toContain('Live-Vorschau')
+    expect(wrapper.find('.preview-window').exists()).toBe(false)
+    expect(wrapper.find('.admin-order').exists()).toBe(true)
+  })
+
   it('adds a service only after submitting the complete modal form', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)

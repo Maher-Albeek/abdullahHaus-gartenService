@@ -20,6 +20,13 @@ const fillAndSubmit = async (wrapper: VueWrapper) => {
 }
 
 describe('ContactSection', () => {
+  it('shows the configured section kicker and title', () => {
+    const wrapper = mountContact()
+
+    expect(wrapper.get('.section-kicker').text()).toBe('Kontakt')
+    expect(wrapper.get('.content-heading').text()).toBe('Wie können wir Ihnen helfen?')
+  })
+
   it('requires privacy confirmation and links to the privacy policy', () => {
     const wrapper = mountContact()
     const privacyCheckbox = wrapper.get<HTMLInputElement>('#contact-privacy')
