@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { readApiResponse } from '../utils/apiResponse'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,7 +20,7 @@ const login = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.value, password: password.value }),
     })
-    const result = await response.json() as { message?: string }
+    const result = await readApiResponse<{ message?: string }>(response)
     if (!response.ok) throw new Error(result.message || 'Anmeldung fehlgeschlagen.')
     await router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : '/admin')
   } catch (reason) {
@@ -34,7 +35,7 @@ const forgotPassword = async () => {
   const response = await fetch('/api/auth/forgot-password', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.value }),
   })
-  const result = await response.json() as { message?: string }
+  const result = await readApiResponse<{ message?: string }>(response)
   resetSent.value = response.ok ? 'Falls das Konto existiert, wurde eine Reset-E-Mail versendet.' : (result.message || 'Reset-E-Mail konnte nicht versendet werden.')
 }
 </script>

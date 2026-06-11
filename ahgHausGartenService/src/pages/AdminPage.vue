@@ -6,6 +6,7 @@ import DatabasePanel from '../component/DatabasePanel.vue'
 import UsersPanel from '../component/UsersPanel.vue'
 import { imgToAvif } from '../utils/imgToAvif'
 import { createMessagesPdfBlob } from '../utils/messagesToPdf'
+import { readApiResponse } from '../utils/apiResponse'
 
 type ContactMessage = {
   id: string
@@ -640,7 +641,7 @@ const loadSessionRole = async () => {
   try {
     const response = await fetch('/api/auth/session')
     if (!response.ok) return
-    const result = await response.json() as { user?: { role?: string } }
+    const result = await readApiResponse<{ user?: { role?: string } }>(response)
     if (!result.user?.role || !['boss', 'owner', 'editor'].includes(result.user.role)) return
     currentRole.value = result.user.role
     if (isDatabase.value && !canAccessDatabase.value) activeId.value = 'general'

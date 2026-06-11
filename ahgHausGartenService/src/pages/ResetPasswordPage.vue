@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { readApiResponse } from '../utils/apiResponse'
 const route = useRoute()
 const router = useRouter()
 const password = ref('')
@@ -11,7 +12,7 @@ const reset = async () => {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: route.query.token, password: password.value }),
   })
-  const result = await response.json() as { message?: string }
+  const result = await readApiResponse<{ message?: string }>(response)
   if (!response.ok) { error.value = result.message || 'Zurücksetzen fehlgeschlagen.'; return }
   message.value = 'Passwort geändert. Sie werden zur Anmeldung weitergeleitet.'
   window.setTimeout(() => router.replace('/login'), 1200)

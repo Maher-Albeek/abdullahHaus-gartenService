@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { readApiResponse } from '../utils/apiResponse'
 const props = defineProps<{ canManage: boolean }>()
 
 type User = { id: string; email: string; displayName: string; role: string; isActive: boolean }
@@ -15,7 +16,7 @@ const assignableRoles = computed(() => sessionUser.value?.role === 'boss' ? ['bo
 
 const request = async (url: string, options?: RequestInit) => {
   const response = await fetch(url, options)
-  const result = await response.json().catch(() => ({})) as { message?: string }
+  const result = await readApiResponse<{ message?: string }>(response)
   if (!response.ok) throw new Error(result.message || 'Request failed.')
   return result
 }
