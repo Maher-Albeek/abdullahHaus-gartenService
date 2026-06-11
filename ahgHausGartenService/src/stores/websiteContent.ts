@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
 export type ContentItem = Record<string, string | number | boolean>
 
@@ -29,8 +29,6 @@ export type WebsiteContent = {
   }
   sections: WebsiteSection[]
 }
-
-const STORAGE_KEY = 'ahg-website-content'
 
 const defaultServiceItems: ContentItem[] = [
   {
@@ -240,6 +238,7 @@ export const defaultWebsiteContent: WebsiteContent = {
         title: 'Persönlich. Gründlich. Zuverlässig.',
         text: 'AHG Haus-Gartenservice ist Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und Garten.',
         imageUrl: '/about.jpg',
+        imageUrl2: '',
       },
       items: [],
     },
@@ -356,19 +355,46 @@ const migrateBenefits = (websiteContent: WebsiteContent) => {
 export const useWebsiteContentStore = defineStore('websiteContent', () => {
   const content = ref<WebsiteContent>(cloneDefaults())
   const lastSaved = ref<Date | null>(null)
+  const loading = ref(false)
+  const saving = ref(false)
+  const error = ref('')
 
-  const load = () => {
+  const load = async () => {
+    loading.value = true
+    error.value = ''
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) content.value = migrateBenefits(migrateServices(JSON.parse(stored) as WebsiteContent))
-    } catch {
-      content.value = cloneDefaults()
+      const response = await fetch('/api/content')
+      if (response.status === 204) {
+        await save()
+      } else if (!response.ok) {
+        throw new Error(`Inhalte konnten nicht geladen werden (${response.status}).`)
+      } else {
+        content.value = migrateBenefits(migrateServices((await response.json()) as WebsiteContent))
+      }
+    } catch (loadError) {
+      error.value = loadError instanceof Error ? loadError.message : 'Inhalte konnten nicht geladen werden.'
+    } finally {
+      loading.value = false
     }
   }
 
-  const save = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(content.value))
-    lastSaved.value = new Date()
+  const save = async () => {
+    saving.value = true
+    error.value = ''
+    try {
+      const response = await fetch('/api/content', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(content.value),
+      })
+      if (!response.ok) throw new Error(`Inhalte konnten nicht gespeichert werden (${response.status}).`)
+      lastSaved.value = new Date()
+    } catch (saveError) {
+      error.value = saveError instanceof Error ? saveError.message : 'Inhalte konnten nicht gespeichert werden.'
+      throw saveError
+    } finally {
+      saving.value = false
+    }
   }
 
   const loadGallery = async () => {
@@ -389,9 +415,9 @@ export const useWebsiteContentStore = defineStore('websiteContent', () => {
     }
   }
 
-  const reset = () => {
+  const reset = async () => {
     content.value = cloneDefaults()
-    save()
+    await save()
   }
 
   const moveSection = (index: number, direction: -1 | 1) => {
@@ -403,9 +429,7 @@ export const useWebsiteContentStore = defineStore('websiteContent', () => {
 
   const enabledSections = computed(() => content.value.sections.filter((section) => section.enabled))
 
-  load()
-  void loadGallery()
-  watch(content, save, { deep: true })
+  const ready = load().finally(loadGallery)
 
-  return { content, enabledSections, lastSaved, save, reset, moveSection, loadGallery }
+  return { content, enabledSections, lastSaved, loading, saving, error, ready, load, save, reset, moveSection, loadGallery }
 })

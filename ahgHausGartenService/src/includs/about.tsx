@@ -1,28 +1,42 @@
-import { defineComponent } from 'vue'
-const aboutImage = '../public/about.jpg'
+import { computed, defineComponent } from 'vue'
+import { useWebsiteContentStore } from '../stores/websiteContent'
+
 export default defineComponent({
   name: 'AboutSection',
   setup() {
-    return () => (
-      <section id="about" class="py-20 px-4 bg-white">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-start">
-         <div class="w-full md:w-1/2">
-            <img src={aboutImage} alt="Unser Team bei der Arbeit" class="w-full h-auto max-h-[600px] object-cover rounded-lg shadow-md" />
-        </div>
-        <div class="w-full md:w-1/2">
+    const store = useWebsiteContentStore()
+    const section = computed(() => store.content.sections.find((entry) => entry.id === 'about'))
 
-            <p class="text-gray-700 text-lg leading-relaxed max-w-3xl mx-auto mb-6">
-                AHG Haus-Gartenservice ist Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und Garten. Mit über 10 Jahren Erfahrung bieten wir maßgeschneiderte Lösungen für Privat- und Geschäftskunden in der Region.
-            </p>
-            <p class="text-gray-700 text-lg leading-relaxed max-w-3xl mx-auto mb-6">
-                Unser Team aus erfahrenen Fachkräften kümmert sich mit Leidenschaft um Ihren Außenbereich – von der Rasenpflege über den Heckenschnitt bis hin zur Gartengestaltung. Wir legen großen Wert auf Qualität, Zuverlässigkeit und Kundenzufriedenheit.
-            </p>
-            <p class="text-gray-700 text-lg leading-relaxed max-w-3xl mx-auto">
-                Bei AHG Haus-Gartenservice stehen Sie als Kunde im Mittelpunkt. Wir beraten Sie individuell, erstellen transparente Angebote und setzen Ihre Wünsche professionell um. Vertrauen Sie auf unsere Expertise und lassen Sie uns gemeinsam Ihren Traumgarten verwirklichen!
-            </p>
-        </div>
-      </div>
-      </section>
-    )
-  }
+    return () => {
+      const about = section.value
+      if (!about?.enabled) return null
+      const images = [about.content.imageUrl, about.content.imageUrl2]
+        .map((url) => String(url ?? ''))
+        .filter(Boolean)
+
+      return (
+        <section id="about" class="py-20 px-4 bg-white">
+          <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-start">
+            <div class={`w-full md:w-1/2 grid gap-4 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {images.map((imageUrl, index) => (
+                <img
+                  key={imageUrl}
+                  src={imageUrl}
+                  alt={`Unser Team bei der Arbeit ${index + 1}`}
+                  class="w-full h-full min-h-[260px] max-h-[600px] object-cover rounded-lg shadow-md"
+                />
+              ))}
+            </div>
+            <div class="w-full md:w-1/2">
+              <p class="section-kicker">{String(about.content.kicker ?? '')}</p>
+              <h2 class="content-heading">{String(about.content.title ?? '')}</h2>
+              <p class="text-gray-700 text-lg leading-relaxed max-w-3xl mx-auto mb-6">
+                {String(about.content.text ?? '')}
+              </p>
+            </div>
+          </div>
+        </section>
+      )
+    }
+  },
 })

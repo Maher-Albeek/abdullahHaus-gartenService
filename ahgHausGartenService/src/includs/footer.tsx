@@ -1,11 +1,13 @@
 import { defineComponent } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useCookieConsentStore } from '../stores/cookieConsent'
+import { useWebsiteContentStore } from '../stores/websiteContent'
 
 export default defineComponent({
   name: 'FooterSection',
   setup() {
     const cookieStore = useCookieConsentStore()
+    const store = useWebsiteContentStore()
 
     return () => (
       <footer class="bg-brand-dark text-white pt-12 pb-6">
@@ -14,7 +16,7 @@ export default defineComponent({
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
             {/* Column 1 – Brand */}
             <div>
-              <img src="/AHG.webp" alt="AHG Haus-Gartenservice" class="h-12 mb-4" />
+              <img src={store.content.brand.logoUrl} alt={store.content.brand.businessName} class="h-12 mb-4" />
               <p class="text-sm opacity-75 leading-relaxed">
                 Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und
                 Garten.
@@ -28,16 +30,16 @@ export default defineComponent({
               </h3>
               <ul class="space-y-2 text-sm opacity-75">
                 <li>
-                  <a href="tel:+4912345678" class="hover:opacity-100 transition-opacity">
-                    +49 123 456 78
+                  <a href={`tel:+${store.content.contact.whatsapp}`} class="hover:opacity-100 transition-opacity">
+                    {store.content.contact.phone}
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:info@ahg-service.de" class="hover:opacity-100 transition-opacity">
-                    info@ahg-service.de
+                  <a href={`mailto:${store.content.contact.email}`} class="hover:opacity-100 transition-opacity">
+                    {store.content.contact.email}
                   </a>
                 </li>
-                <li>Musterstraße 1, 12345 Musterstadt</li>
+                <li>{store.content.contact.address}</li>
               </ul>
             </div>
 
@@ -79,7 +81,7 @@ export default defineComponent({
           {/* Bottom bar */}
           <div class="border-t border-white/20 pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs opacity-60">
             <span>
-              &copy; {new Date().getFullYear()} AHG Haus-Gartenservice. Alle Rechte vorbehalten.
+              &copy; {new Date().getFullYear()} {store.content.brand.businessName}. Alle Rechte vorbehalten.
             </span>
             <div class="mt-4 text-center text-xs opacity-40">Created by Maher Albeek</div>
             <div class="flex gap-5">

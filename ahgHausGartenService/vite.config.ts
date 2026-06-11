@@ -14,6 +14,7 @@ type GalleryRecord = { imageUrl: string; alt: string }
 
 const galleryDirectory = fileURLToPath(new URL('./public/gallery', import.meta.url))
 const galleryDatabase = fileURLToPath(new URL('./database/gallery.json', import.meta.url))
+const contentDatabase = fileURLToPath(new URL('./database/website-content.json', import.meta.url))
 
 const readGallery = async () => {
   try {
@@ -40,6 +41,60 @@ const sendJson = (response: ServerResponse, status: number, value: unknown) => {
   response.statusCode = status
   response.setHeader('Content-Type', 'application/json')
   response.end(JSON.stringify(value))
+}
+
+const contentApi = (): Plugin => {
+  const middleware: Connect.NextHandleFunction = async (request, response, next) => {
+    if (!request.url?.startsWith('/api/content')) return next()
+
+    try {
+      if (request.method === 'GET') {
+        try {
+          sendJson(response, 200, JSON.parse(await readFile(contentDatabase, 'utf8')))
+        } catch {
+          response.statusCode = 204
+          response.end()
+        }
+        return
+      }
+
+      if (request.method === 'PUT') {
+        if (!request.headers['content-type']?.startsWith('application/json')) {
+          sendJson(response, 415, { message: 'Only JSON content is accepted.' })
+          return
+        }
+
+        const content = JSON.parse((await readBody(request)).toString('utf8')) as {
+          brand?: unknown
+          contact?: unknown
+          sections?: unknown
+        }
+        if (!content.brand || !content.contact || !Array.isArray(content.sections)) {
+          sendJson(response, 400, { message: 'Invalid website content.' })
+          return
+        }
+
+        await mkdir(path.dirname(contentDatabase), { recursive: true })
+        await writeFile(contentDatabase, `${JSON.stringify(content, null, 2)}\n`, 'utf8')
+        sendJson(response, 200, content)
+        return
+      }
+
+      sendJson(response, 405, { message: 'Method not allowed.' })
+    } catch (error) {
+      sendJson(response, 500, { message: error instanceof Error ? error.message : 'Content request failed.' })
+    }
+  }
+
+  return {
+    name: 'content-api',
+    configureServer(server) {
+      server.middlewares.use(middleware)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(middleware)
+    },
+  }
 }
 
 const galleryApi = (): Plugin => {
@@ -80,11 +135,13 @@ const galleryApi = (): Plugin => {
 
         await mkdir(galleryDirectory, { recursive: true })
         await writeFile(path.join(galleryDirectory, filename), body)
-        const records = await readGallery()
-        const existingIndex = records.findIndex((entry) => entry.imageUrl === record.imageUrl)
-        if (existingIndex >= 0) records[existingIndex] = record
-        else records.push(record)
-        await writeGallery(records)
+        if (request.headers['x-image-usage'] !== 'about') {
+          const records = await readGallery()
+          const existingIndex = records.findIndex((entry) => entry.imageUrl === record.imageUrl)
+          if (existingIndex >= 0) records[existingIndex] = record
+          else records.push(record)
+          await writeGallery(records)
+        }
         sendJson(response, 201, record)
         return
       }
@@ -122,6 +179,7 @@ const galleryApi = (): Plugin => {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    contentApi(),
     galleryApi(),
     tailwindcss(),
     vue(),

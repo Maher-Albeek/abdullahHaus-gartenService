@@ -1,5 +1,6 @@
 import { defineComponent, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useWebsiteContentStore } from '../stores/websiteContent'
 
 const focusableSelector =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -11,6 +12,7 @@ export default defineComponent({
     const navButton = ref<HTMLElement | null>(null)
     const takeoverNav = ref<HTMLElement | null>(null)
     const router = useRouter()
+    const store = useWebsiteContentStore()
 
     const closeNav = (restoreFocus = true) => {
       navOpen.value = false
@@ -124,7 +126,7 @@ export default defineComponent({
                 navigateTo('/')
               }}
             >
-              <img src="/AHG.webp" alt="AHG Haus-Gartenservice" />
+              <img src={store.content.brand.logoUrl} alt={store.content.brand.businessName} />
             </a>
             <div
               ref={navButton}
@@ -176,19 +178,19 @@ export default defineComponent({
                   </h2>
                   <ul class="ahg-contact-list">
                     <li>
-                      <a href="tel:+4912345678">+49 123 456 78</a>
+                      <a href={`tel:+${store.content.contact.whatsapp}`}>{store.content.contact.phone}</a>
                     </li>
                     <li>
-                      <a href="mailto:info@ahg-service.de">info@ahg-service.de</a>
+                      <a href={`mailto:${store.content.contact.email}`}>{store.content.contact.email}</a>
                     </li>
                     <li>
-                      <span>Musterstadt, Deutschland</span>
+                      <span>{store.content.contact.address}</span>
                     </li>
                   </ul>
                   <div class="ahg-social">
-                    <a href="#">Instagram</a>
+                    <a href={store.content.contact.instagram || '#'}>Instagram</a>
                     <span class="sep">|</span>
-                    <a href="#">Facebook</a>
+                    <a href={store.content.contact.facebook || '#'}>Facebook</a>
                   </div>
                 </div>
               </div>

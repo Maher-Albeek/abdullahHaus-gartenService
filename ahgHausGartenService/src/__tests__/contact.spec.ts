@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import ContactSection, { type ContactFormData } from '../includs/contact'
+
+const mountContact = (submitContact?: (data: ContactFormData) => Promise<void>) =>
+  mount(ContactSection, {
+    props: submitContact ? { submitContact } : undefined,
+    global: { plugins: [createPinia()] },
+  })
 
 const fillAndSubmit = async (wrapper: VueWrapper) => {
   await wrapper.get<HTMLInputElement>('#contact-name').setValue('Max Mustermann')
@@ -14,7 +21,7 @@ const fillAndSubmit = async (wrapper: VueWrapper) => {
 
 describe('ContactSection', () => {
   it('requires privacy confirmation and links to the privacy policy', () => {
-    const wrapper = mount(ContactSection)
+    const wrapper = mountContact()
     const privacyCheckbox = wrapper.get<HTMLInputElement>('#contact-privacy')
 
     expect(privacyCheckbox.attributes('required')).toBeDefined()
@@ -23,7 +30,7 @@ describe('ContactSection', () => {
 
   it('shows a success state and clears the form after submission', async () => {
     const submitContact = vi.fn<(data: ContactFormData) => Promise<void>>().mockResolvedValue()
-    const wrapper = mount(ContactSection, { props: { submitContact } })
+    const wrapper = mountContact(submitContact)
 
     await fillAndSubmit(wrapper)
 
@@ -42,7 +49,7 @@ describe('ContactSection', () => {
     const submitContact = vi
       .fn<(data: ContactFormData) => Promise<void>>()
       .mockRejectedValue(new Error())
-    const wrapper = mount(ContactSection, { props: { submitContact } })
+    const wrapper = mountContact(submitContact)
 
     await fillAndSubmit(wrapper)
 

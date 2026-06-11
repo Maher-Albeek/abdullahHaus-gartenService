@@ -35,6 +35,11 @@ npm install
 npm run dev
 ```
 
+Website content is loaded from `database/website-content.json` through `/api/content`.
+The database file is initialized from the default content on the first successful
+development or preview server request. Admin changes are persisted only when
+`In Datenbank speichern` is selected.
+
 ### Type-Check, Compile and Minify for Production
 
 ```sh

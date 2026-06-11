@@ -1,69 +1,47 @@
-import { defineComponent, onMounted, ref } from 'vue'
-
-function useCounter(target: number, duration = 1800) {
-  const count = ref(0)
-  onMounted(() => {
-    const steps = 60
-    const increment = target / steps
-    const interval = duration / steps
-    let current = 0
-    const timer = setInterval(() => {
-      current += increment
-      if (current >= target) {
-        count.value = target
-        clearInterval(timer)
-      } else {
-        count.value = Math.floor(current)
-      }
-    }, interval)
-  })
-  return count
-}
+import { computed, defineComponent } from 'vue'
+import { useWebsiteContentStore } from '../stores/websiteContent'
 
 export default defineComponent({
   name: 'HeroSection',
   setup() {
-    const teamCount = useCounter(8)
-    const yearsCount = useCounter(12)
-    const projectsCount = useCounter(350)
+    const store = useWebsiteContentStore()
+    const section = computed(() => store.content.sections.find((entry) => entry.id === 'hero'))
 
-    return () => (
-      <section class="ahg-hero">
-        <div class="video-wrap">
-          <video autoplay playsinline loop muted id="video-bg">
-            <source src="/hero-bg.mp4" type="video/mp4" />
-          </video>
-        </div>
-        <div class="gradient-overlay"></div>
-        <div class="hero-content">
-          <h1 class="hero-title blend">
-            Abdullah für
-            <br />
-            Haus &amp; Garten
-          </h1>
+    return () => {
+      const hero = section.value
+      if (!hero?.enabled) return null
+      const content = hero.content
 
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <span class="hero-stat-number blend">{teamCount.value}+</span>
-              <span class="hero-stat-label blend">Teammitglieder</span>
-            </div>
-            <div class="hero-stat-divider" />
-            <div class="hero-stat">
-              <span class="hero-stat-number blend">{yearsCount.value}+</span>
-              <span class="hero-stat-label blend">Jahre Erfahrung</span>
-            </div>
-            <div class="hero-stat-divider" />
-            <div class="hero-stat">
-              <span class="hero-stat-number blend">{projectsCount.value}+</span>
-              <span class="hero-stat-label blend">Projekte</span>
-            </div>
+      return (
+        <section class="ahg-hero">
+          <div class="video-wrap">
+            <video autoplay playsinline loop muted id="video-bg">
+              <source src={String(content.backgroundVideo ?? '/hero-bg.mp4')} type="video/mp4" />
+            </video>
           </div>
-          <p class="hero-subtitle blend">
-            Ihr zuverlässiger Partner für professionelle Pflege und Instandhaltung von Haus und
-            Garten.
-          </p>
-        </div>
-      </section>
-    )
+          <div class="gradient-overlay"></div>
+          <div class="hero-content">
+            <h1 class="hero-title blend">{String(content.title ?? '')}</h1>
+            <div class="hero-stats">
+              <div class="hero-stat">
+                <span class="hero-stat-number blend">{String(content.teamCount ?? 0)}+</span>
+                <span class="hero-stat-label blend">Teammitglieder</span>
+              </div>
+              <div class="hero-stat-divider" />
+              <div class="hero-stat">
+                <span class="hero-stat-number blend">{String(content.yearsCount ?? 0)}+</span>
+                <span class="hero-stat-label blend">Jahre Erfahrung</span>
+              </div>
+              <div class="hero-stat-divider" />
+              <div class="hero-stat">
+                <span class="hero-stat-number blend">{String(content.projectsCount ?? 0)}+</span>
+                <span class="hero-stat-label blend">Projekte</span>
+              </div>
+            </div>
+            <p class="hero-subtitle blend">{String(content.subtitle ?? '')}</p>
+          </div>
+        </section>
+      )
+    }
   },
 })

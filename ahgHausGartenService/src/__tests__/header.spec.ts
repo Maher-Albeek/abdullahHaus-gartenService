@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { createPinia } from 'pinia'
 import Header from '../includs/header'
 
 let wrapper: VueWrapper
@@ -15,7 +16,7 @@ const mountHeader = async () => {
 
   wrapper = mount(Header, {
     attachTo: document.body,
-    global: { plugins: [router] },
+    global: { plugins: [createPinia(), router] },
   })
 }
 

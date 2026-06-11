@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useWebsiteContentStore, type ContentItem, type WebsiteSection } from '../stores/websiteContent'
 import { imgToAvif } from '../utils/imgToAvif'
 
@@ -18,6 +18,10 @@ const galleryInput = ref<HTMLInputElement | null>(null)
 const galleryDragActive = ref(false)
 const galleryUploading = ref(false)
 const galleryError = ref('')
+const aboutInput = ref<HTMLInputElement | null>(null)
+const aboutDragActive = ref(false)
+const aboutUploading = ref(false)
+const aboutError = ref('')
 const cloneItem = (item: ContentItem) => JSON.parse(JSON.stringify(item)) as ContentItem
 const serviceSection = () => store.content.sections.find((section) => section.id === 'services')
 const benefitsSection = () => store.content.sections.find((section) => section.id === 'benefits')
@@ -246,6 +250,79 @@ const dropGalleryFiles = (event: DragEvent) => {
   if (event.dataTransfer?.files) void uploadGalleryFiles(event.dataTransfer.files)
 }
 
+const aboutImageUrls = () =>
+  [activeSection.value.content.imageUrl, activeSection.value.content.imageUrl2]
+    .map((url) => String(url ?? ''))
+    .filter(Boolean)
+
+const deleteUploadedImage = async (imageUrl: string) => {
+  if (!imageUrl.startsWith('/gallery/')) return
+  const response = await fetch(`/api/gallery?path=${encodeURIComponent(imageUrl)}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(await responseMessage(response))
+}
+
+const uploadAboutImage = async (files: FileList | File[]) => {
+  const images = Array.from(files).filter(isImageFile)
+  if (!images.length) {
+    aboutError.value = 'Bitte eine Bilddatei auswÃ¤hlen.'
+    return
+  }
+  if (images.length > 2) {
+    aboutError.value = 'Bitte maximal zwei Bilder auswÃ¤hlen.'
+    return
+  }
+
+  aboutUploading.value = true
+  aboutError.value = ''
+  const previousUrls = aboutImageUrls()
+  const uploadedUrls: string[] = []
+  try {
+    for (const image of images) {
+      const [avif] = await imgToAvif(image, { quality: 75, maxDimension: 2400 })
+      if (!avif) throw new Error('Das Bild konnte nicht konvertiert werden.')
+
+      const response = await fetch('/api/gallery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'image/avif',
+          'X-File-Name': encodeURIComponent(`about-${avif.name}`),
+          'X-Image-Alt': encodeURIComponent(image.name.replace(/\.[^.]+$/, '')),
+          'X-Image-Usage': 'about',
+        },
+        body: avif,
+      })
+      if (!response.ok) throw new Error(await responseMessage(response))
+
+      const record = (await response.json()) as ContentItem
+      uploadedUrls.push(String(record.imageUrl))
+    }
+
+    activeSection.value.content.imageUrl = uploadedUrls[0] ?? ''
+    activeSection.value.content.imageUrl2 = uploadedUrls[1] ?? ''
+    await store.save()
+    const cleanupResults = await Promise.allSettled(
+      previousUrls.filter((url) => !uploadedUrls.includes(url)).map(deleteUploadedImage),
+    )
+    if (cleanupResults.some((result) => result.status === 'rejected')) {
+      aboutError.value = 'Die neuen Bilder wurden gespeichert, aber mindestens ein altes Bild konnte nicht gelÃ¶scht werden.'
+    }
+    showNotice(images.length === 1 ? 'Ãœber-uns-Bild ersetzt' : 'Zwei Ãœber-uns-Bilder ersetzt')
+  } catch (error) {
+    activeSection.value.content.imageUrl = previousUrls[0] ?? ''
+    activeSection.value.content.imageUrl2 = previousUrls[1] ?? ''
+    await Promise.all(uploadedUrls.filter((url) => !previousUrls.includes(url)).map(deleteUploadedImage)).catch(() => undefined)
+    aboutError.value = error instanceof Error ? error.message : 'Upload fehlgeschlagen.'
+  } finally {
+    aboutUploading.value = false
+    if (aboutInput.value) aboutInput.value.value = ''
+  }
+}
+
+const dropAboutImage = (event: DragEvent) => {
+  aboutDragActive.value = false
+  if (event.dataTransfer?.files) void uploadAboutImage(event.dataTransfer.files)
+}
+
 const removeGalleryItem = async (section: WebsiteSection, index: number) => {
   const imageUrl = String(section.items[index]?.imageUrl ?? '')
   if (imageUrl.startsWith('/gallery/')) {
@@ -305,6 +382,8 @@ const syncServiceDrafts = () => {
   serviceDrafts.value = serviceSection()?.items.map(cloneItem) ?? []
   benefitDrafts.value = benefitsSection()?.items.map(cloneItem) ?? []
 }
+
+watch(() => store.content, syncServiceDrafts)
 
 const removeItem = (section: WebsiteSection, index: number) => {
   section.items.splice(index, 1)
@@ -397,12 +476,25 @@ const importContent = async (event: Event) => {
   showNotice('Content imported')
 }
 
-const resetContent = () => {
+const saveContent = async () => {
+  try {
+    await store.save()
+    showNotice('Inhalte in Datenbank gespeichert')
+  } catch {
+    showNotice(store.error || 'Speichern fehlgeschlagen')
+  }
+}
+
+const resetContent = async () => {
   if (!window.confirm('Alle Änderungen zurücksetzen?')) return
-  store.reset()
-  syncServiceDrafts()
-  activeId.value = store.content.sections[0]?.id ?? ''
-  showNotice('Content reset')
+  try {
+    await store.reset()
+    syncServiceDrafts()
+    activeId.value = store.content.sections[0]?.id ?? ''
+    showNotice('Standardinhalte in Datenbank gespeichert')
+  } catch {
+    showNotice(store.error || 'ZurÃ¼cksetzen fehlgeschlagen')
+  }
 }
 
 const showNotice = (message: string) => {
@@ -461,8 +553,9 @@ const showNotice = (message: string) => {
           <button type="button" class="admin-button ghost" @click="exportContent">
             <i class="fa-solid fa-download"></i> Export
           </button>
-          <button type="button" class="admin-button primary" @click="store.save(); showNotice('Changes saved')">
-            <i class="fa-solid fa-check"></i> Speichern
+          <button type="button" class="admin-button primary" :disabled="store.saving" @click="saveContent">
+            <i :class="`fa-solid fa-${store.saving ? 'spinner fa-spin' : 'database'}`"></i>
+            {{ store.saving ? 'Speichert...' : 'In Datenbank speichern' }}
           </button>
         </div>
       </header>
@@ -471,7 +564,7 @@ const showNotice = (message: string) => {
         <article><i class="fa-solid fa-layer-group"></i><div><strong>{{ store.content.sections.length }}</strong><span>Bereiche</span></div></article>
         <article><i class="fa-solid fa-eye"></i><div><strong>{{ visibleCount }}</strong><span>Aktiv</span></div></article>
         <article><i class="fa-solid fa-pen-ruler"></i><div><strong>2</strong><span>Markenfarben</span></div></article>
-        <article><i class="fa-solid fa-cloud"></i><div><strong>Auto</strong><span>Lokal gespeichert</span></div></article>
+        <article><i class="fa-solid fa-database"></i><div><strong>{{ store.saving ? '...' : 'DB' }}</strong><span>Datenbank</span></div></article>
       </section>
 
       <div class="admin-workspace">
@@ -483,7 +576,12 @@ const showNotice = (message: string) => {
             </div>
 
             <div v-if="activeSection.id !== 'benefits'" class="admin-form-grid">
-              <label v-for="(value, key) in activeSection.content" :key="key" :class="{ wide: isLongText(String(key), value) }">
+              <label
+                v-for="(value, key) in activeSection.content"
+                v-show="activeSection.id !== 'about' || !['imageUrl', 'imageUrl2'].includes(String(key))"
+                :key="key"
+                :class="{ wide: isLongText(String(key), value) }"
+              >
                 <span>{{ labelFor(String(key)) }}</span>
                 <textarea v-if="isLongText(String(key), value)" :value="String(value)" rows="3" @input="updateContentValue(activeSection.content, String(key), $event)"></textarea>
                 <div v-else-if="inputType(String(key), value) === 'color'" class="admin-color-field">
@@ -492,6 +590,44 @@ const showNotice = (message: string) => {
                 </div>
                 <input v-else :value="String(value)" :type="inputType(String(key), value)" @input="updateContentValue(activeSection.content, String(key), $event)" />
               </label>
+            </div>
+            <div
+              v-if="activeSection.id === 'about'"
+              class="admin-about-image"
+              :class="{ active: aboutDragActive, busy: aboutUploading }"
+              @dragenter.prevent="aboutDragActive = true"
+              @dragover.prevent="aboutDragActive = true"
+              @dragleave.prevent="aboutDragActive = false"
+              @drop.prevent="dropAboutImage"
+            >
+              <div v-if="aboutImageUrls().length" class="admin-about-thumbnails">
+                <img
+                  v-for="(imageUrl, index) in aboutImageUrls()"
+                  :key="imageUrl"
+                  class="admin-about-thumbnail"
+                  :src="imageUrl"
+                  :alt="`Aktuelles Ãœber-uns-Bild ${index + 1}`"
+                />
+              </div>
+              <div>
+                <i :class="`fa-solid fa-${aboutUploading ? 'spinner fa-spin' : 'cloud-arrow-up'}`"></i>
+                <strong>{{ aboutUploading ? 'Bild wird in AVIF konvertiert und gespeichert...' : 'Ãœber-uns-Bild hier ablegen' }}</strong>
+                <span>Maximal zwei Bilder. Neue Bilder ersetzen die alten und werden automatisch in AVIF konvertiert.</span>
+                <label class="admin-button soft admin-gallery-picker" :class="{ disabled: aboutUploading }">
+                  <input
+                    ref="aboutInput"
+                    class="admin-gallery-file-input"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    :disabled="aboutUploading"
+                    @change="uploadAboutImage(($event.target as HTMLInputElement).files ?? [])"
+                  />
+                  <i class="fa-solid fa-image"></i>
+                  Bild auswÃ¤hlen
+                </label>
+                <small v-if="aboutError" class="admin-gallery-error">{{ aboutError }}</small>
+              </div>
             </div>
           </section>
 

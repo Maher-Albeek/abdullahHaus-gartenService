@@ -211,4 +211,23 @@ describe('AdminPage service modal', () => {
     expect(input.attributes('accept')).toBe('image/*')
     expect(input.attributes('multiple')).toBeDefined()
   })
+
+  it('shows a two-image AVIF drop zone and thumbnail for the about section', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(AdminPage, { global: { plugins: [pinia] } })
+
+    const aboutNav = wrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('ber uns'))!
+    await aboutNav.trigger('click')
+
+    const upload = wrapper.get('.admin-about-image')
+    const input = upload.get<HTMLInputElement>('input[type="file"]')
+    expect(upload.text()).toContain('AVIF')
+    expect(input.attributes('accept')).toBe('image/*')
+    expect(input.attributes('multiple')).toBeDefined()
+    expect(upload.text()).toContain('Maximal zwei Bilder')
+    expect(upload.get('.admin-about-thumbnail').attributes('src')).toBe('/about.jpg')
+  })
 })

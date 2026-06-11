@@ -1,4 +1,5 @@
-import { defineComponent, ref, type PropType } from 'vue'
+import { computed, defineComponent, ref, type PropType } from 'vue'
+import { useWebsiteContentStore } from '../stores/websiteContent'
 
 export type ContactFormData = {
   name: string
@@ -16,6 +17,9 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const store = useWebsiteContentStore()
+    const section = computed(() => store.content.sections.find((entry) => entry.id === 'contact'))
+    const services = computed(() => store.content.sections.find((entry) => entry.id === 'services')?.items ?? [])
     const selectedService = ref('')
     const submissionState = ref<'idle' | 'submitting' | 'success' | 'error'>('idle')
 
@@ -47,8 +51,7 @@ export default defineComponent({
             class="text-center mb-10 max-w-2xl mx-auto"
             style={{ color: '#444447', fontSize: '1.1rem' }}
           >
-            Haben Sie Fragen oder möchten Sie ein individuelles Angebot? Wir freuen uns auf Ihre
-            Nachricht!
+            {String(section.value?.content.intro ?? '')}
           </p>
           <div class="contact-wrapper">
             {/* ── LEFT: form ── */}
@@ -135,17 +138,10 @@ export default defineComponent({
                     }}
                   >
                     <option value="">– Bitte wählen –</option>
-                    <option value="Umzugsreinigung">Umzugsreinigung</option>
-                    <option value="Büro- & Arbeitsplatzreinigung">
-                      Büro- & Arbeitsplatzreinigung
-                    </option>
-                    <option value="Standardreinigung">Standardreinigung</option>
-                    <option value="Hauswirtschaft">Hauswirtschaft</option>
-                    <option value="Fensterreinigung">Fensterreinigung innen & außen</option>
-                    <option value="Gartenpflege">Gartenpflege</option>
-                    <option value="Winterdienst">Winterdienst</option>
-                    <option value="Glasreinigung">Glasreinigung</option>
-                    <option value="Schönheitsreparaturen">Kleine Schönheitsreparaturen</option>
+                    {services.value.map((service) => {
+                      const title = String(service.title ?? '')
+                      return <option value={title}>{title}</option>
+                    })}
                   </select>
                   <span class="contact-span">
                     <svg
@@ -216,7 +212,7 @@ export default defineComponent({
                   class="contact-button"
                   disabled={submissionState.value === 'submitting'}
                 >
-                  {submissionState.value === 'submitting' ? 'Wird gesendet ...' : 'Nachricht senden'}
+                  {submissionState.value === 'submitting' ? 'Wird gesendet ...' : String(section.value?.content.buttonLabel ?? 'Nachricht senden')}
                 </button>
 
                 {submissionState.value === 'success' && (
@@ -251,8 +247,8 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <a href="mailto:info@ahg-service.de" class="contact-info-link">
-                    info@ahg-service.de
+                  <a href={`mailto:${store.content.contact.email}`} class="contact-info-link">
+                    {store.content.contact.email}
                   </a>
                 </div>
 
@@ -270,8 +266,8 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <a href="tel:+4917632093451" class="contact-info-link">
-                    0176 32093451
+                  <a href={`tel:+${store.content.contact.whatsapp}`} class="contact-info-link">
+                    {store.content.contact.phone}
                   </a>
                 </div>
 
@@ -289,7 +285,7 @@ export default defineComponent({
                       />
                     </svg>
                   </span>
-                  <span class="contact-info-text">Ludwigsburger Str. 49, 71332 Waiblingen</span>
+                  <span class="contact-info-text">{store.content.contact.address}</span>
                 </div>
               </div>
 

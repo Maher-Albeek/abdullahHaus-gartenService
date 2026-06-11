@@ -1,6 +1,7 @@
 import { computed, defineComponent, onMounted, onUnmounted, ref } from 'vue'
+import { useWebsiteContentStore } from '../stores/websiteContent'
 
-const feedbacks = [
+const defaultFeedbacks = [
   {
     name: 'Maria S.',
     rating: 5,
@@ -54,6 +55,9 @@ function StarRating({ count }: { count: number }) {
 export default defineComponent({
   name: 'FeedbacksSection',
   setup() {
+    const store = useWebsiteContentStore()
+    const section = computed(() => store.content.sections.find((entry) => entry.id === 'testimonials'))
+    const feedbacks = computed(() => section.value?.items ?? defaultFeedbacks)
     const activeIndex = ref(0)
     const perView = ref(3)
 
@@ -70,7 +74,7 @@ export default defineComponent({
       window.removeEventListener('resize', updatePerView)
     })
 
-    const maxIndex = computed(() => feedbacks.length - perView.value)
+    const maxIndex = computed(() => Math.max(0, feedbacks.value.length - perView.value))
 
     const prev = () => {
       activeIndex.value = activeIndex.value <= 0 ? maxIndex.value : activeIndex.value - 1
@@ -105,18 +109,18 @@ export default defineComponent({
                 class="flex w-full transition-transform duration-500 ease-in-out"
                 style={{ transform: `translateX(-${activeIndex.value * (100 / perView.value)}%)` }}
               >
-                {feedbacks.map((fb, i) => (
+                {feedbacks.value.map((fb, i) => (
                   <div key={i} class="shrink-0 px-2" style={{ width: `${100 / perView.value}%` }}>
                     <div class="bg-gray-50 rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-3 h-full hover:shadow-md transition-shadow duration-300">
-                      <StarRating count={fb.rating} />
-                      <p class="text-gray-700 leading-relaxed italic flex-1">"{fb.text}"</p>
+                      <StarRating count={Number(fb.rating)} />
+                      <p class="text-gray-700 leading-relaxed italic flex-1">"{String(fb.text)}"</p>
                       <div class="mt-auto pt-4 border-t border-gray-200 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-brand-green flex items-center justify-center text-white font-bold text-sm shrink-0">
-                          {fb.name.charAt(0)}
+                          {String(fb.name).charAt(0)}
                         </div>
                         <div>
-                          <p class="font-semibold text-gray-800 text-sm">{fb.name}</p>
-                          <p class="text-xs text-gray-400">{fb.service}</p>
+                          <p class="font-semibold text-gray-800 text-sm">{String(fb.name)}</p>
+                          <p class="text-xs text-gray-400">{String(fb.service)}</p>
                         </div>
                       </div>
                     </div>
