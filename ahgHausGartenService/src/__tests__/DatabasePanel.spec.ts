@@ -5,31 +5,34 @@ import DatabasePanel from '../component/DatabasePanel.vue'
 describe('DatabasePanel', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('contains only query input and result output and displays selected rows', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
-      rows: [{ document_key: 'messages', data: [] }],
-    }), { status: 200 }))
+  it('loads tables and displays structured add and delete controls', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      if (url === '/api/database') return new Response(JSON.stringify([{ name: 'app_documents', rows: 1, shape: 'array' }]), { status: 200 })
+      return new Response(JSON.stringify({ name: 'app_documents', shape: 'array', columns: ['document_key', 'data'], rows: [{ document_key: 'messages', data: [] }] }), { status: 200 })
+    })
     const wrapper = mount(DatabasePanel)
-
-    expect(wrapper.find('.database-toolbar').exists()).toBe(false)
-    expect(wrapper.find('.database-rows').exists()).toBe(false)
-    expect(wrapper.findAll('textarea')).toHaveLength(1)
-
-    await wrapper.get('.database-run').trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('.database-result-table').text()).toContain('document_key')
-    expect(wrapper.get('.database-result-table').text()).toContain('messages')
-    expect(fetchMock).toHaveBeenCalledWith('/api/database/query', expect.objectContaining({ method: 'POST' }))
+    expect(wrapper.get<HTMLSelectElement>('.database-toolbar select').element.value).toBe('app_documents')
+    expect(wrapper.get('.database-toolbar').text()).toContain('Add table')
+    expect(wrapper.get('.database-toolbar').text()).toContain('Delete table')
+    expect(wrapper.get('.database-columns').text()).toContain('Add column')
+    expect(wrapper.get<HTMLTextAreaElement>('.database-rows textarea').element.value).toContain('messages')
   })
 
-  it('displays query errors in the output', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ message: 'SQL syntax error' }), { status: 400 }))
+  it('runs a structured count operation', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+      if (url === '/api/database' && !options) return new Response(JSON.stringify([{ name: 'app_documents', rows: 3, shape: 'array' }]), { status: 200 })
+      if (String(url).includes('?table=')) return new Response(JSON.stringify({ name: 'app_documents', shape: 'array', columns: ['document_key'], rows: [] }), { status: 200 })
+      return new Response(JSON.stringify({ count: 3 }), { status: 200 })
+    })
     const wrapper = mount(DatabasePanel)
-
-    await wrapper.get('.database-run').trigger('click')
+    await flushPromises()
+    await wrapper.get('.database-query select').setValue('count')
+    await wrapper.get('.database-query .admin-button.primary').trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('.database-error').text()).toBe('SQL syntax error')
+    expect(wrapper.get('.database-query pre').text()).toContain('"count": 3')
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/database', expect.objectContaining({ method: 'POST' }))
   })
 })

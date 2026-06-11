@@ -12,11 +12,14 @@ import tailwindcss from '@tailwindcss/vite'
 import {
   configureDatabase,
   executeSqlOperation,
-  executeRawQuery,
   listSqlTables,
-  readDocument,
+  readGalleryRecords,
+  readMessageRecords,
   readSqlTable,
-  writeDocument,
+  readWebsiteContent,
+  writeGalleryRecords,
+  writeMessageRecords,
+  writeWebsiteContent,
 } from './server/database'
 
 type GalleryRecord = { imageUrl: string; alt: string }
@@ -43,20 +46,6 @@ const databaseApi = (): Plugin => {
     try {
       const url = new URL(request.url, 'http://localhost')
       const requestedTable = url.searchParams.get('table')
-
-      if (request.url.startsWith('/api/database/query')) {
-        if (request.method !== 'POST') {
-          sendJson(response, 405, { message: 'Method not allowed.' })
-          return
-        }
-        if (!request.headers['content-type']?.startsWith('application/json')) {
-          sendJson(response, 415, { message: 'Only JSON content is accepted.' })
-          return
-        }
-        const body = JSON.parse((await readBody(request)).toString('utf8')) as { query?: string }
-        sendJson(response, 200, await executeRawQuery(String(body.query ?? '')))
-        return
-      }
 
       if (request.method === 'GET') {
         sendJson(response, 200, requestedTable ? await readSqlTable(requestedTable) : await listSqlTables())
@@ -90,19 +79,19 @@ const databaseApi = (): Plugin => {
 }
 
 const readMessages = async () => {
-  return readDocument<MessageRecord[]>('messages', messagesDatabase, [])
+  return readMessageRecords(messagesDatabase)
 }
 
 const writeMessages = async (records: MessageRecord[]) => {
-  await writeDocument('messages', records, messagesDatabase)
+  await writeMessageRecords(records, messagesDatabase)
 }
 
 const readGallery = async () => {
-  return readDocument<GalleryRecord[]>('gallery', galleryDatabase, [])
+  return readGalleryRecords(galleryDatabase)
 }
 
 const writeGallery = async (records: GalleryRecord[]) => {
-  await writeDocument('gallery', records, galleryDatabase)
+  await writeGalleryRecords(records, galleryDatabase)
 }
 
 const readBody = (request: Connect.IncomingMessage) =>
@@ -125,7 +114,7 @@ const contentApi = (): Plugin => {
 
     try {
       if (request.method === 'GET') {
-        const content = await readDocument<Record<string, unknown> | null>('website-content', contentDatabase, null)
+        const content = await readWebsiteContent(contentDatabase)
         if (content) sendJson(response, 200, content)
         else {
           response.statusCode = 204
@@ -150,7 +139,7 @@ const contentApi = (): Plugin => {
           return
         }
 
-        await writeDocument('website-content', content, contentDatabase)
+        await writeWebsiteContent(content as Parameters<typeof writeWebsiteContent>[0], contentDatabase)
         sendJson(response, 200, content)
         return
       }
