@@ -17,6 +17,11 @@ coverage
 .env.*
 !.env.example
 
+#database
+gallery.json
+messages.json
+website-content.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
