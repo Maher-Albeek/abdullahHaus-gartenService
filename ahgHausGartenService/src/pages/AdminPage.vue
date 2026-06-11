@@ -1,10 +1,23 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useWebsiteContentStore, type ContentItem, type WebsiteSection } from '../stores/websiteContent'
 import { imgToAvif } from '../utils/imgToAvif'
+import { createMessagesPdfBlob } from '../utils/messagesToPdf'
+
+type ContactMessage = {
+  id: string
+  name: string
+  email: string
+  service: string
+  message: string
+  createdAt: string
+  read?: boolean
+}
 
 const store = useWebsiteContentStore()
-const activeId = ref(store.content.sections[0]?.id ?? 'hero')
+const storedActiveId = window.localStorage.getItem('ahg-admin-active-panel')
+const validActiveIds = ['general', 'messages', ...store.content.sections.map((section) => section.id)]
+const activeId = ref(storedActiveId && validActiveIds.includes(storedActiveId) ? storedActiveId : 'general')
 const search = ref('')
 const notice = ref('')
 const importInput = ref<HTMLInputElement | null>(null)
@@ -22,6 +35,16 @@ const aboutInput = ref<HTMLInputElement | null>(null)
 const aboutDragActive = ref(false)
 const aboutUploading = ref(false)
 const aboutError = ref('')
+const messages = ref<ContactMessage[]>([])
+const messagesLoading = ref(false)
+const messagesError = ref('')
+const openMessageIds = ref<string[]>([])
+const selectedMessageIds = ref<string[]>([])
+const unreadMessageCount = computed(() => messages.value.filter((message) => message.read !== true).length)
+const readMessageCount = computed(() => messages.value.filter((message) => message.read === true).length)
+const selectedMessages = computed(() => messages.value.filter((message) => selectedMessageIds.value.includes(message.id)))
+const allMessagesSelected = computed(() => messages.value.length > 0 && selectedMessageIds.value.length === messages.value.length)
+let messagePollTimer: number | undefined
 const cloneItem = (item: ContentItem) => JSON.parse(JSON.stringify(item)) as ContentItem
 const serviceSection = () => store.content.sections.find((section) => section.id === 'services')
 const benefitsSection = () => store.content.sections.find((section) => section.id === 'benefits')
@@ -74,6 +97,8 @@ const serviceIcons = [
 const activeSection = computed(
   () => store.content.sections.find((section) => section.id === activeId.value) ?? store.content.sections[0]!,
 )
+const isGeneral = computed(() => activeId.value === 'general')
+const isMessages = computed(() => activeId.value === 'messages')
 const filteredSections = computed(() => {
   const query = search.value.trim().toLowerCase()
   return query
@@ -126,6 +151,94 @@ const filteredServiceIcons = computed(() => {
 
 const labelFor = (key: string) =>
   key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
+
+const formatMessageDate = (value: string) =>
+  new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+
+const loadMessages = async (notify = false) => {
+  messagesLoading.value = true
+  messagesError.value = ''
+  try {
+    const previousUnreadCount = unreadMessageCount.value
+    const response = await fetch('/api/messages')
+    if (!response.ok) throw new Error('Nachrichten konnten nicht geladen werden.')
+    messages.value = (await response.json()) as ContactMessage[]
+    selectedMessageIds.value = selectedMessageIds.value.filter((id) => messages.value.some((message) => message.id === id))
+    if (notify && unreadMessageCount.value > previousUnreadCount) {
+      showNotice(`${unreadMessageCount.value - previousUnreadCount} neue Nachricht`)
+    }
+  } catch (error) {
+    messagesError.value = error instanceof Error ? error.message : 'Nachrichten konnten nicht geladen werden.'
+  } finally {
+    messagesLoading.value = false
+  }
+}
+
+const openMessages = () => {
+  activeId.value = 'messages'
+  void loadMessages()
+}
+
+const toggleMessage = async (entry: ContactMessage) => {
+  if (openMessageIds.value.includes(entry.id)) {
+    openMessageIds.value = openMessageIds.value.filter((id) => id !== entry.id)
+    return
+  }
+  openMessageIds.value = [...openMessageIds.value, entry.id]
+  if (entry.read === true) return
+  const response = await fetch(`/api/messages?id=${encodeURIComponent(entry.id)}`, { method: 'PATCH' })
+  if (!response.ok) {
+    showNotice('Nachricht konnte nicht als gelesen markiert werden')
+    return
+  }
+  entry.read = true
+}
+
+const deleteMessage = async (id: string) => {
+  const response = await fetch(`/api/messages?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+  if (!response.ok) {
+    showNotice('Nachricht konnte nicht gelöscht werden')
+    return
+  }
+  messages.value = messages.value.filter((message) => message.id !== id)
+  selectedMessageIds.value = selectedMessageIds.value.filter((selectedId) => selectedId !== id)
+  showNotice('Nachricht gelöscht')
+}
+
+const toggleAllMessages = () => {
+  selectedMessageIds.value = allMessagesSelected.value ? [] : messages.value.map((message) => message.id)
+}
+
+const deleteSelectedMessages = async () => {
+  if (!selectedMessageIds.value.length) return
+  const results = await Promise.all(selectedMessageIds.value.map(async (id) => {
+    const response = await fetch(`/api/messages?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    return response.ok ? id : null
+  }))
+  const deletedIds = results.filter((id): id is string => id !== null)
+  messages.value = messages.value.filter((message) => !deletedIds.includes(message.id))
+  selectedMessageIds.value = selectedMessageIds.value.filter((id) => !deletedIds.includes(id))
+  showNotice(`${deletedIds.length} Nachrichten gelöscht`)
+}
+
+const exportMessagesPdf = () => {
+  if (!selectedMessages.value.length) return
+  const url = URL.createObjectURL(createMessagesPdfBlob(selectedMessages.value))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `kontakt-nachrichten-${new Date().toISOString().slice(0, 10)}.pdf`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+onMounted(() => {
+  void loadMessages()
+  messagePollTimer = window.setInterval(() => void loadMessages(true), 30000)
+})
+
+onUnmounted(() => {
+  if (messagePollTimer) window.clearInterval(messagePollTimer)
+})
 
 const inputType = (key: string, value: unknown) => {
   if (typeof value === 'boolean') return 'checkbox'
@@ -384,6 +497,7 @@ const syncServiceDrafts = () => {
 }
 
 watch(() => store.content, syncServiceDrafts)
+watch(activeId, (value) => window.localStorage.setItem('ahg-admin-active-panel', value), { immediate: true })
 
 const removeItem = (section: WebsiteSection, index: number) => {
   section.items.splice(index, 1)
@@ -472,7 +586,6 @@ const importContent = async (event: Event) => {
   if (!file) return
   store.content = JSON.parse(await file.text())
   syncServiceDrafts()
-  activeId.value = store.content.sections[0]?.id ?? ''
   showNotice('Content imported')
 }
 
@@ -490,7 +603,6 @@ const resetContent = async () => {
   try {
     await store.reset()
     syncServiceDrafts()
-    activeId.value = store.content.sections[0]?.id ?? ''
     showNotice('Standardinhalte in Datenbank gespeichert')
   } catch {
     showNotice(store.error || 'ZurÃ¼cksetzen fehlgeschlagen')
@@ -515,6 +627,22 @@ const showNotice = (message: string) => {
         <i class="fa-solid fa-magnifying-glass"></i>
         <input v-model="search" type="search" placeholder="Bereich suchen..." />
       </label>
+
+      <div class="admin-nav-heading">
+        <span>Verwaltung</span>
+      </div>
+      <nav class="admin-section-nav admin-general-nav">
+        <button type="button" :class="{ active: isGeneral }" @click="activeId = 'general'">
+          <i class="fa-solid fa-sliders"></i>
+          <span>General</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button type="button" :class="{ active: isMessages }" @click="openMessages">
+          <i class="fa-solid fa-inbox"></i>
+          <span>Nachrichten <b v-if="unreadMessageCount" class="admin-unread-badge">{{ unreadMessageCount }}</b></span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </nav>
 
       <div class="admin-nav-heading">
         <span>Website-Bereiche</span>
@@ -543,9 +671,13 @@ const showNotice = (message: string) => {
       <header class="admin-topbar">
         <div>
           <p>Website-Verwaltung</p>
-          <h1>Inhalte & Bereiche</h1>
+          <h1>{{ isGeneral ? 'General' : isMessages ? 'Nachrichten' : 'Inhalte & Bereiche' }}</h1>
         </div>
         <div class="admin-actions">
+          <button type="button" class="admin-notification-button" aria-label="Nachrichten öffnen" @click="openMessages">
+            <i class="fa-solid fa-bell"></i>
+            <b v-if="unreadMessageCount">{{ unreadMessageCount }}</b>
+          </button>
           <button type="button" class="admin-button ghost" @click="importInput?.click()">
             <i class="fa-solid fa-file-import"></i> Import
           </button>
@@ -560,16 +692,9 @@ const showNotice = (message: string) => {
         </div>
       </header>
 
-      <section class="admin-stats">
-        <article><i class="fa-solid fa-layer-group"></i><div><strong>{{ store.content.sections.length }}</strong><span>Bereiche</span></div></article>
-        <article><i class="fa-solid fa-eye"></i><div><strong>{{ visibleCount }}</strong><span>Aktiv</span></div></article>
-        <article><i class="fa-solid fa-pen-ruler"></i><div><strong>2</strong><span>Markenfarben</span></div></article>
-        <article><i class="fa-solid fa-database"></i><div><strong>{{ store.saving ? '...' : 'DB' }}</strong><span>Datenbank</span></div></article>
-      </section>
-
-      <div class="admin-workspace">
+      <div class="admin-workspace" :class="{ 'admin-workspace-single': !isGeneral || isMessages }">
         <div class="admin-editor">
-          <section class="admin-card">
+          <section v-if="!isGeneral && !isMessages" class="admin-card">
             <div class="admin-card-header">
               <div><p>Aktiver Bereich</p><h2>{{ activeSection.label }}</h2><span>{{ activeSection.description }}</span></div>
               <label class="admin-switch"><input v-model="activeSection.enabled" type="checkbox" /><span></span>{{ activeSection.enabled ? 'Sichtbar' : 'Ausgeblendet' }}</label>
@@ -633,7 +758,7 @@ const showNotice = (message: string) => {
 
           <section
             v-for="group in itemGroups"
-            v-show="group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id)"
+            v-show="!isGeneral && !isMessages && (group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id))"
             :key="group.id"
             class="admin-card"
             :data-content-group="group.id"
@@ -821,7 +946,64 @@ const showNotice = (message: string) => {
             </div>
           </section>
 
-          <section class="admin-card">
+          <section v-if="isMessages" class="admin-card">
+            <div class="admin-card-header">
+              <div><p>Kontaktformular</p><h2>Eingegangene Nachrichten</h2><span>{{ messages.length }} Nachrichten gespeichert</span></div>
+              <div class="admin-message-actions">
+                <button type="button" class="admin-button ghost" :disabled="!selectedMessageIds.length" @click="exportMessagesPdf">
+                  <i class="fa-solid fa-file-pdf"></i> Auswahl als PDF
+                </button>
+                <button type="button" class="admin-button danger" :disabled="!selectedMessageIds.length" @click="deleteSelectedMessages">
+                  <i class="fa-solid fa-trash"></i> Auswahl lÃ¶schen
+                </button>
+                <button type="button" class="admin-button soft" :disabled="messagesLoading" @click="loadMessages()">
+                  <i :class="`fa-solid fa-${messagesLoading ? 'spinner fa-spin' : 'rotate'}`"></i> Aktualisieren
+                </button>
+              </div>
+            </div>
+            <div class="admin-message-stats">
+              <article><i class="fa-solid fa-envelope"></i><div><strong>{{ messages.length }}</strong><span>Gesamt</span></div></article>
+              <article><i class="fa-solid fa-envelope-open"></i><div><strong>{{ readMessageCount }}</strong><span>Gelesen</span></div></article>
+              <article class="unread"><i class="fa-solid fa-bell"></i><div><strong>{{ unreadMessageCount }}</strong><span>Ungelesen</span></div></article>
+            </div>
+            <p v-if="messagesError" class="admin-messages-state admin-messages-error">{{ messagesError }}</p>
+            <p v-else-if="messagesLoading" class="admin-messages-state">Nachrichten werden geladen...</p>
+            <p v-else-if="!messages.length" class="admin-messages-state">Noch keine Nachrichten vorhanden.</p>
+            <div v-else class="admin-messages">
+              <div class="admin-message-selection">
+                <label><input type="checkbox" :checked="allMessagesSelected" @change="toggleAllMessages" /> Alle auswÃ¤hlen</label>
+                <span>{{ selectedMessageIds.length }} von {{ messages.length }} ausgewÃ¤hlt</span>
+              </div>
+              <article v-for="entry in messages" :key="entry.id" class="admin-message" :class="{ unread: entry.read !== true, open: openMessageIds.includes(entry.id), selected: selectedMessageIds.includes(entry.id) }">
+                <label class="admin-message-checkbox" :aria-label="`${entry.name} auswÃ¤hlen`">
+                  <input v-model="selectedMessageIds" type="checkbox" :value="entry.id" @click.stop />
+                </label>
+                <button type="button" class="admin-message-summary" @click.prevent.stop="toggleMessage(entry)">
+                  <div>
+                    <span class="admin-message-status">{{ entry.read === true ? 'Gelesen' : 'Neu' }}</span>
+                    <strong>{{ entry.name }}</strong>
+                    <small>{{ entry.email }}<template v-if="entry.service"> · {{ entry.service }}</template></small>
+                  </div>
+                  <span><time :datetime="entry.createdAt">{{ formatMessageDate(entry.createdAt) }}</time><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div v-if="openMessageIds.includes(entry.id)" class="admin-message-body">
+                  <a :href="`mailto:${entry.email}`"><i class="fa-solid fa-reply"></i> {{ entry.email }}</a>
+                  <span v-if="entry.service" class="admin-message-service">{{ entry.service }}</span>
+                  <p>{{ entry.message }}</p>
+                <button type="button" class="admin-delete" @click="deleteMessage(entry.id)"><i class="fa-solid fa-trash"></i> Nachricht löschen</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="isGeneral" class="admin-stats">
+            <article><i class="fa-solid fa-layer-group"></i><div><strong>{{ store.content.sections.length }}</strong><span>Bereiche</span></div></article>
+            <article><i class="fa-solid fa-eye"></i><div><strong>{{ visibleCount }}</strong><span>Aktiv</span></div></article>
+            <article><i class="fa-solid fa-pen-ruler"></i><div><strong>2</strong><span>Markenfarben</span></div></article>
+            <article><i class="fa-solid fa-database"></i><div><strong>{{ store.saving ? '...' : 'DB' }}</strong><span>Datenbank</span></div></article>
+          </section>
+
+          <section v-if="isGeneral" class="admin-card">
             <div class="admin-card-header compact"><div><p>Globale Einstellungen</p><h2>Marke & Kontakt</h2></div></div>
             <div class="admin-form-grid">
               <label v-for="(value, key) in store.content.brand" :key="key">
@@ -833,10 +1015,10 @@ const showNotice = (message: string) => {
             </div>
           </section>
 
-          <button type="button" class="admin-reset" @click="resetContent"><i class="fa-solid fa-arrow-rotate-left"></i> Auf Standardinhalte zurücksetzen</button>
+          <button v-if="isGeneral" type="button" class="admin-reset" @click="resetContent"><i class="fa-solid fa-arrow-rotate-left"></i> Auf Standardinhalte zurücksetzen</button>
         </div>
 
-        <aside class="admin-order-sidebar">
+        <aside v-if="isGeneral" class="admin-order-sidebar">
           <div class="admin-order">
             <h3>Reihenfolge</h3>
             <div v-for="(section, index) in store.content.sections" :key="section.id">

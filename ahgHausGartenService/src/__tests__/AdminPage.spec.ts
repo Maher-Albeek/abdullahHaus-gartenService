@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AdminPage from '../pages/AdminPage.vue'
 import { useWebsiteContentStore } from '../stores/websiteContent'
@@ -9,12 +9,75 @@ describe('AdminPage service modal', () => {
     localStorage.clear()
   })
 
-  it('does not show a live preview in admin panels', () => {
+  it('opens the general panel by default without a live preview', () => {
     const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
 
     expect(wrapper.text()).not.toContain('Live-Vorschau')
     expect(wrapper.find('.preview-window').exists()).toBe(false)
+    expect(wrapper.get('.admin-topbar h1').text()).toBe('General')
     expect(wrapper.find('.admin-order').exists()).toBe(true)
+  })
+
+  it('restores the active admin panel after a reload', async () => {
+    const firstWrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
+    const servicesNav = firstWrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('Leistungen'))!
+    await servicesNav.trigger('click')
+    expect(localStorage.getItem('ahg-admin-active-panel')).toBe('services')
+    firstWrapper.unmount()
+
+    const secondWrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
+    expect(secondWrapper.get('.admin-topbar h1').text()).toBe('Inhalte & Bereiche')
+    expect(secondWrapper.get('.admin-section-nav button.active').text()).toContain('Leistungen')
+    secondWrapper.unmount()
+  })
+
+  it('loads and displays saved contact messages in the messages panel', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+      if (url === '/api/messages') {
+        return new Response(JSON.stringify([{
+          id: 'message-1',
+          name: 'Max Mustermann',
+          email: 'max@example.com',
+          service: 'Gartenpflege',
+          message: 'Bitte um Rückruf.',
+          createdAt: '2026-06-11T10:00:00.000Z',
+          read: options?.method === 'PATCH',
+        }]), { status: 200 })
+      }
+      return new Response(null, { status: 204 })
+    })
+    const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+    expect(wrapper.get('.admin-unread-badge').text()).toBe('1')
+
+    const messagesNav = wrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('Nachrichten'))!
+
+    await messagesNav.trigger('click')
+    await flushPromises()
+    expect(localStorage.getItem('ahg-admin-active-panel')).toBe('messages')
+
+    expect(wrapper.get('.admin-message').text()).toContain('Max Mustermann')
+    expect(wrapper.find('.admin-message-body').exists()).toBe(false)
+    expect(wrapper.get('.admin-message-stats').text()).toContain('Ungelesen')
+    expect(wrapper.get('.admin-message-selection').text()).toContain('0 von 1')
+    const selectionCheckbox = wrapper.get<HTMLInputElement>('.admin-message-checkbox input')
+    await selectionCheckbox.setValue(true)
+    expect(wrapper.get('.admin-message-selection').text()).toContain('1 von 1')
+    expect(wrapper.get('.admin-message-actions .admin-button.ghost').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.admin-message-actions .admin-button.danger').attributes('disabled')).toBeUndefined()
+    await wrapper.get('.admin-message-summary').trigger('click')
+    await flushPromises()
+    expect(localStorage.getItem('ahg-admin-active-panel')).toBe('messages')
+    expect(wrapper.get('.admin-message-body').text()).toContain('Bitte um')
+    expect(wrapper.find('.admin-unread-badge').exists()).toBe(false)
+    expect(fetchMock).toHaveBeenCalledWith('/api/messages?id=message-1', { method: 'PATCH' })
+    expect(wrapper.find('.admin-notification-button').exists()).toBe(true)
+    wrapper.unmount()
+    fetchMock.mockRestore()
   })
 
   it('adds a service only after submitting the complete modal form', async () => {

@@ -8,12 +8,21 @@ export type ContactFormData = {
   message: string
 }
 
+const submitContactMessage = async (data: ContactFormData) => {
+  const response = await fetch('/api/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) throw new Error('Message could not be saved.')
+}
+
 export default defineComponent({
   name: 'ContactSection',
   props: {
     submitContact: {
       type: Function as PropType<(data: ContactFormData) => Promise<void>>,
-      default: async () => undefined,
+      default: submitContactMessage,
     },
   },
   setup(props) {

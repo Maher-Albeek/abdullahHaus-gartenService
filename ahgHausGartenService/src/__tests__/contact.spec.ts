@@ -20,6 +20,23 @@ const fillAndSubmit = async (wrapper: VueWrapper) => {
 }
 
 describe('ContactSection', () => {
+  it('saves messages through the messages API by default', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 201 }))
+    const wrapper = mountContact()
+
+    await fillAndSubmit(wrapper)
+
+    const messageRequest = fetchMock.mock.calls.find(([url]) => url === '/api/messages')
+    expect(messageRequest?.[1]).toEqual(expect.objectContaining({ method: 'POST' }))
+    expect(JSON.parse(String(messageRequest?.[1]?.body))).toEqual({
+      name: 'Max Mustermann',
+      email: 'max@example.com',
+      service: 'Gartenpflege',
+      message: 'Bitte um Rückruf.',
+    })
+    fetchMock.mockRestore()
+  })
+
   it('shows the configured section kicker and title', () => {
     const wrapper = mountContact()
 
