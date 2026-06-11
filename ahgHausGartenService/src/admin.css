@@ -330,7 +330,8 @@
 .admin-form-grid input,
 .admin-form-grid textarea,
 .admin-item-body input,
-.admin-item-body textarea {
+.admin-item-body textarea,
+.admin-item-body select {
   width: 100%;
   border: 1px solid #dfe4db;
   background: #fafbf9;
@@ -346,7 +347,8 @@
 .admin-form-grid input:focus,
 .admin-form-grid textarea:focus,
 .admin-item-body input:focus,
-.admin-item-body textarea:focus {
+.admin-item-body textarea:focus,
+.admin-item-body select:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 3px #4d8b2315;
 }
@@ -358,6 +360,9 @@
 .admin-color-field input[type='color'] {
   padding: 3px;
   height: 37px;
+}
+.admin-group-content {
+  border-bottom: 1px solid #edf0ea;
 }
 .admin-service-colors {
   display: grid;

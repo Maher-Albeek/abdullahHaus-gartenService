@@ -106,4 +106,91 @@ describe('AdminPage service modal', () => {
     expect(services.items[0]?.title).toBe(secondTitle)
     expect(services.items[1]?.title).toBe(firstTitle)
   })
+
+  it('adds benefits and concerns from the benefits admin section', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useWebsiteContentStore()
+    const benefits = store.content.sections.find((section) => section.id === 'benefits')!
+    const wrapper = mount(AdminPage, { global: { plugins: [pinia] } })
+
+    const benefitsNav = wrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('Vorteile'))!
+    await benefitsNav.trigger('click')
+
+    const benefitGroup = wrapper.get('[data-content-group="benefit"]')
+    const concernGroup = wrapper.get('[data-content-group="concern"]')
+    expect(benefitGroup.get('.admin-card-header h2').text()).toBe('Vorteile')
+    expect(concernGroup.get('.admin-card-header h2').text()).toBe('Anliegen')
+    expect(benefitGroup.findAll('.admin-group-content label')).toHaveLength(3)
+    expect(concernGroup.findAll('.admin-group-content label')).toHaveLength(4)
+
+    await benefitGroup.get('.admin-card-header .admin-button.soft').trigger('click')
+    await concernGroup.get('.admin-card-header .admin-button.soft').trigger('click')
+
+    expect(benefits.items[benefits.items.length - 2]?.kind).toBe('benefit')
+    expect(benefits.items[benefits.items.length - 1]?.kind).toBe('concern')
+  })
+
+  it('keeps benefit type fixed while saving icon edits and restoring drafts on cancel', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useWebsiteContentStore()
+    const benefits = store.content.sections.find((section) => section.id === 'benefits')!
+    const originalTitle = benefits.items[0]?.title
+    const originalIcon = benefits.items[0]?.icon
+    const wrapper = mount(AdminPage, { global: { plugins: [pinia] } })
+
+    const benefitsNav = wrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('Vorteile'))!
+    await benefitsNav.trigger('click')
+
+    const firstCard = wrapper.get('[data-content-group="benefit"] .admin-items details:first-child')
+    expect(firstCard.find('select').exists()).toBe(false)
+    expect(firstCard.text()).not.toContain('Art')
+
+    await firstCard.get<HTMLInputElement>('.admin-item-body input[type="text"]').setValue('Entwurf')
+    await firstCard.get('.admin-icon-select').trigger('click')
+    await firstCard.get('[aria-label="Planung auswählen"]').trigger('click')
+
+    expect(benefits.items[0]?.title).toBe(originalTitle)
+    expect(benefits.items[0]?.icon).toBe(originalIcon)
+
+    await firstCard.get('.admin-item-actions .admin-button.ghost').trigger('click')
+    expect(firstCard.get<HTMLInputElement>('.admin-item-body input[type="text"]').element.value).toBe(originalTitle)
+
+    const firstDraft = (wrapper.vm as unknown as { benefitDrafts: Array<Record<string, unknown>> }).benefitDrafts[0]!
+    firstDraft.kind = 'concern'
+    await firstCard.get('.admin-item-actions .admin-button.primary').trigger('click')
+
+    expect(benefits.items[0]?.kind).toBe('benefit')
+  })
+
+  it('sorts benefits by dragging without moving them into the concerns group', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useWebsiteContentStore()
+    const section = store.content.sections.find((entry) => entry.id === 'benefits')!
+    const originalBenefits = section.items.filter((item) => item.kind === 'benefit').map((item) => item.title)
+    const originalConcerns = section.items.filter((item) => item.kind === 'concern').map((item) => item.question)
+    const wrapper = mount(AdminPage, { global: { plugins: [pinia] } })
+
+    const benefitsNav = wrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('Vorteile'))!
+    await benefitsNav.trigger('click')
+
+    const benefitCards = wrapper.findAll('[data-content-group="benefit"] .admin-items details')
+    await benefitCards[0]!.get('[aria-label="Vorteil verschieben"]').trigger('dragstart')
+    await benefitCards[1]!.trigger('drop')
+
+    expect(section.items.filter((item) => item.kind === 'benefit').map((item) => item.title)).toEqual([
+      originalBenefits[1],
+      originalBenefits[0],
+      ...originalBenefits.slice(2),
+    ])
+    expect(section.items.filter((item) => item.kind === 'concern').map((item) => item.question)).toEqual(originalConcerns)
+  })
 })

@@ -10,11 +10,14 @@ const importInput = ref<HTMLInputElement | null>(null)
 const iconSearch = ref('')
 const openIconPicker = ref<number | null>(null)
 const newService = ref<ContentItem | null>(null)
-const draggedServiceIndex = ref<number | null>(null)
+const draggedItemIndex = ref<number | null>(null)
 const dragTargetIndex = ref<number | null>(null)
+const draggedGroupId = ref<string | null>(null)
 const cloneItem = (item: ContentItem) => JSON.parse(JSON.stringify(item)) as ContentItem
 const serviceSection = () => store.content.sections.find((section) => section.id === 'services')
+const benefitsSection = () => store.content.sections.find((section) => section.id === 'benefits')
 const serviceDrafts = ref<ContentItem[]>(serviceSection()?.items.map(cloneItem) ?? [])
+const benefitDrafts = ref<ContentItem[]>(benefitsSection()?.items.map(cloneItem) ?? [])
 
 const serviceIcons = [
   ['fa-solid fa-broom', 'Besen'],
@@ -69,6 +72,42 @@ const filteredSections = computed(() => {
     : store.content.sections
 })
 const visibleCount = computed(() => store.content.sections.filter((section) => section.enabled).length)
+const itemGroups = computed(() => {
+  const entries = activeSection.value.items.map((item, index) => ({ item, index }))
+  if (activeSection.value.id !== 'benefits') {
+    return [{ id: 'items', title: 'Einträge', description: 'Wiederholbare Inhalte', entries }]
+  }
+
+  return [
+    {
+      id: 'benefit',
+      title: 'Vorteile',
+      description: 'Titel, Beschreibung und Vorteile',
+      entries: entries.filter(({ item }) => item.kind === 'benefit'),
+    },
+    {
+      id: 'concern',
+      title: 'Anliegen',
+      description: 'Titel, Beschreibung und Antworten',
+      entries: entries.filter(({ item }) => item.kind === 'concern'),
+    },
+  ]
+})
+const benefitGroupFields = (groupId: string): Array<[string, string]> =>
+  groupId === 'benefit'
+      ? [
+        ['kicker', 'Kicker'],
+        ['title', 'Titel'],
+        ['intro', 'Beschreibung'],
+      ]
+    : [
+        ['concernsKicker', 'Kicker'],
+        ['concernsTitle', 'Titel'],
+        ['concernsIntro', 'Beschreibung'],
+        ['buttonLabel', 'Button'],
+      ]
+const sortLabel = (groupId: string) =>
+  groupId === 'items' ? 'Dienstleistung' : groupId === 'benefit' ? 'Vorteil' : 'Anliegen'
 const filteredServiceIcons = computed(() => {
   const query = iconSearch.value.trim().toLowerCase()
   return query
@@ -108,7 +147,7 @@ const updateServiceColor = (item: ContentItem, index: number, event: Event) => {
   item.grad = colors.join(', ')
 }
 
-const addItem = (section: WebsiteSection) => {
+const addItem = (section: WebsiteSection, kind?: 'benefit' | 'concern') => {
   if (section.id === 'services') {
     newService.value = {
       title: 'Neue Dienstleistung',
@@ -123,6 +162,16 @@ const addItem = (section: WebsiteSection) => {
     return
   }
 
+  if (section.id === 'benefits') {
+    const item: ContentItem =
+      kind === 'concern'
+        ? { kind: 'concern', question: 'Neue Frage', answer: '' }
+        : { kind: 'benefit', icon: 'fa-solid fa-circle-check', title: 'Neuer Vorteil', text: '' }
+    section.items.push(item)
+    benefitDrafts.value.push(cloneItem(item))
+    return
+  }
+
   const template = section.items[0]
   section.items.push(
     template
@@ -131,8 +180,16 @@ const addItem = (section: WebsiteSection) => {
   )
 }
 
+const addGroupItem = (section: WebsiteSection, groupId: string) => {
+  addItem(section, groupId === 'concern' ? 'concern' : 'benefit')
+}
+
 const editableItem = (section: WebsiteSection, item: ContentItem, index: number) =>
-  section.id === 'services' ? (serviceDrafts.value[index] ?? item) : item
+  section.id === 'services'
+    ? (serviceDrafts.value[index] ?? item)
+    : section.id === 'benefits'
+      ? (benefitDrafts.value[index] ?? item)
+      : item
 
 const saveService = (index: number) => {
   const services = serviceSection()
@@ -140,6 +197,17 @@ const saveService = (index: number) => {
   if (!services || !draft) return
   services.items[index] = cloneItem(draft)
   showNotice('Dienstleistung gespeichert')
+}
+
+const saveBenefit = (index: number) => {
+  const benefits = benefitsSection()
+  const draft = benefitDrafts.value[index]
+  const saved = benefits?.items[index]
+  if (!benefits || !draft || !saved) return
+  const item = cloneItem(draft)
+  item.kind = String(saved.kind)
+  benefits.items[index] = item
+  showNotice('Eintrag gespeichert')
 }
 
 const cancelServiceEdit = (index: number) => {
@@ -150,59 +218,66 @@ const cancelServiceEdit = (index: number) => {
   showNotice('Änderungen verworfen')
 }
 
+const cancelBenefitEdit = (index: number) => {
+  const saved = benefitsSection()?.items[index]
+  if (!saved) return
+  benefitDrafts.value[index] = cloneItem(saved)
+  openIconPicker.value = null
+  showNotice('Änderungen verworfen')
+}
+
 const syncServiceDrafts = () => {
   serviceDrafts.value = serviceSection()?.items.map(cloneItem) ?? []
+  benefitDrafts.value = benefitsSection()?.items.map(cloneItem) ?? []
 }
 
 const removeItem = (section: WebsiteSection, index: number) => {
   section.items.splice(index, 1)
   if (section.id === 'services') serviceDrafts.value.splice(index, 1)
+  if (section.id === 'benefits') benefitDrafts.value.splice(index, 1)
 }
 
-const startServiceDrag = (index: number, event: DragEvent) => {
-  draggedServiceIndex.value = index
+const startItemDrag = (index: number, groupId: string, event: DragEvent) => {
+  draggedItemIndex.value = index
   dragTargetIndex.value = index
+  draggedGroupId.value = groupId
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', String(index))
   }
 }
 
-const dropService = (targetIndex: number) => {
-  const sourceIndex = draggedServiceIndex.value
-  const services = serviceSection()
-  if (sourceIndex === null || sourceIndex === targetIndex || !services) {
-    endServiceDrag()
+const reorderItem = (section: WebsiteSection, sourceIndex: number, targetIndex: number) => {
+  if (sourceIndex === targetIndex) return
+  const drafts = section.id === 'services' ? serviceDrafts.value : benefitDrafts.value
+  const [item] = section.items.splice(sourceIndex, 1)
+  const [draft] = drafts.splice(sourceIndex, 1)
+  if (!item || !draft) return
+  section.items.splice(targetIndex, 0, item)
+  drafts.splice(targetIndex, 0, draft)
+  showNotice('Reihenfolge gespeichert')
+}
+
+const dropItem = (targetIndex: number, groupId: string) => {
+  const sourceIndex = draggedItemIndex.value
+  if (sourceIndex === null || draggedGroupId.value !== groupId) {
+    endItemDrag()
     return
   }
 
-  const [service] = services.items.splice(sourceIndex, 1)
-  const [draft] = serviceDrafts.value.splice(sourceIndex, 1)
-  if (service && draft) {
-    services.items.splice(targetIndex, 0, service)
-    serviceDrafts.value.splice(targetIndex, 0, draft)
-    showNotice('Reihenfolge gespeichert')
-  }
-  endServiceDrag()
+  reorderItem(activeSection.value, sourceIndex, targetIndex)
+  endItemDrag()
 }
 
-const moveService = (index: number, direction: -1 | 1) => {
-  const targetIndex = index + direction
-  const services = serviceSection()
-  if (!services || targetIndex < 0 || targetIndex >= services.items.length) return
-
-  const [service] = services.items.splice(index, 1)
-  const [draft] = serviceDrafts.value.splice(index, 1)
-  if (service && draft) {
-    services.items.splice(targetIndex, 0, service)
-    serviceDrafts.value.splice(targetIndex, 0, draft)
-    showNotice('Reihenfolge gespeichert')
-  }
+const moveItem = (sourceIndex: number, targetIndex: number | undefined) => {
+  if (targetIndex === undefined) return
+  reorderItem(activeSection.value, sourceIndex, targetIndex)
 }
 
-const endServiceDrag = () => {
-  draggedServiceIndex.value = null
+const endItemDrag = () => {
+  draggedItemIndex.value = null
   dragTargetIndex.value = null
+  draggedGroupId.value = null
 }
 
 const selectServiceIcon = (item: ContentItem, icon: string) => {
@@ -332,7 +407,7 @@ const showNotice = (message: string) => {
               <label class="admin-switch"><input v-model="activeSection.enabled" type="checkbox" /><span></span>{{ activeSection.enabled ? 'Sichtbar' : 'Ausgeblendet' }}</label>
             </div>
 
-            <div class="admin-form-grid">
+            <div v-if="activeSection.id !== 'benefits'" class="admin-form-grid">
               <label v-for="(value, key) in activeSection.content" :key="key" :class="{ wide: isLongText(String(key), value) }">
                 <span>{{ labelFor(String(key)) }}</span>
                 <textarea v-if="isLongText(String(key), value)" :value="String(value)" rows="3" @input="updateContentValue(activeSection.content, String(key), $event)"></textarea>
@@ -345,39 +420,74 @@ const showNotice = (message: string) => {
             </div>
           </section>
 
-          <section v-if="activeSection.items.length || ['services', 'gallery', 'testimonials', 'faq'].includes(activeSection.id)" class="admin-card">
+          <section
+            v-for="group in itemGroups"
+            v-show="group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id)"
+            :key="group.id"
+            class="admin-card"
+            :data-content-group="group.id"
+          >
             <div class="admin-card-header compact">
-              <div><p>Wiederholbare Inhalte</p><h2>Einträge</h2></div>
-              <button type="button" class="admin-button soft" @click="addItem(activeSection)"><i class="fa-solid fa-plus"></i> Hinzufügen</button>
+              <div><p>{{ group.description }}</p><h2>{{ group.title }}</h2></div>
+              <button
+                type="button"
+                class="admin-button soft"
+                @click="activeSection.id === 'benefits' ? addGroupItem(activeSection, group.id) : addItem(activeSection)"
+              >
+                <i class="fa-solid fa-plus"></i> Hinzufügen
+              </button>
+            </div>
+            <div v-if="activeSection.id === 'benefits'" class="admin-form-grid admin-group-content">
+              <label
+                v-for="[key, label] in benefitGroupFields(group.id)"
+                :key="key"
+                :class="{ wide: isLongText(key, activeSection.content[key]) }"
+              >
+                <span>{{ label }}</span>
+                <textarea
+                  v-if="isLongText(key, activeSection.content[key])"
+                  :value="String(activeSection.content[key] ?? '')"
+                  rows="3"
+                  @input="updateContentValue(activeSection.content, key, $event)"
+                ></textarea>
+                <input
+                  v-else
+                  :value="String(activeSection.content[key] ?? '')"
+                  type="text"
+                  @input="updateContentValue(activeSection.content, key, $event)"
+                />
+              </label>
             </div>
             <div class="admin-items">
               <details
-                v-for="(item, index) in activeSection.items"
+                v-for="({ item, index }, groupIndex) in group.entries"
                 :key="index"
-                :open="activeSection.id !== 'services' && index === 0"
-                :class="{ 'admin-item-drag-target': activeSection.id === 'services' && dragTargetIndex === index && draggedServiceIndex !== index }"
-                @dragover.prevent="activeSection.id === 'services' && (dragTargetIndex = index)"
-                @drop.prevent="activeSection.id === 'services' && dropService(index)"
+                :open="activeSection.id !== 'services' && groupIndex === 0"
+                :class="{ 'admin-item-drag-target': dragTargetIndex === index && draggedItemIndex !== index && draggedGroupId === group.id }"
+                @dragover.prevent="draggedGroupId === group.id && (dragTargetIndex = index)"
+                @drop.prevent="dropItem(index, group.id)"
               >
                 <summary>
                   <span
-                    v-if="activeSection.id === 'services'"
+                    v-if="['services', 'benefits'].includes(activeSection.id)"
                     class="admin-drag-handle"
                     draggable="true"
-                    aria-label="Dienstleistung verschieben"
+                    :aria-label="`${sortLabel(group.id)} verschieben`"
                     title="Ziehen, um Reihenfolge zu ändern"
-                    @dragstart.stop="startServiceDrag(index, $event)"
-                    @dragend="endServiceDrag"
+                    @dragstart.stop="startItemDrag(index, group.id, $event)"
+                    @dragend="endItemDrag"
                   >
                     <i class="fa-solid fa-grip-vertical"></i>
                   </span>
-                  <span class="admin-item-index">{{ index + 1 }}</span>
+                  <span class="admin-item-index">{{ groupIndex + 1 }}</span>
                   <strong>{{ item.title || item.question || item.name || item.alt || `Eintrag ${index + 1}` }}</strong>
+                  <small v-if="activeSection.id === 'benefits'">{{ item.kind === 'concern' ? 'Anliegen' : 'Vorteil' }}</small>
                   <i class="fa-solid fa-chevron-down"></i>
                 </summary>
                 <div class="admin-item-body">
                   <template v-for="(value, key) in editableItem(activeSection, item, index)" :key="key">
-                    <div v-if="activeSection.id === 'services' && key === 'icon'" class="admin-icon-field wide">
+                    <template v-if="activeSection.id === 'benefits' && key === 'kind'"></template>
+                    <div v-else-if="['services', 'benefits'].includes(activeSection.id) && key === 'icon'" class="admin-icon-field wide">
                       <span>Icon auswählen</span>
                       <button
                         type="button"
@@ -435,17 +545,29 @@ const showNotice = (message: string) => {
                       <input v-else :value="String(value)" :type="inputType(String(key), value)" @input="updateContentValue(editableItem(activeSection, item, index), String(key), $event)" />
                     </label>
                   </template>
-                  <div v-if="activeSection.id === 'services'" class="admin-item-actions">
+                  <div v-if="['services', 'benefits'].includes(activeSection.id)" class="admin-item-actions">
                     <div class="admin-mobile-sort">
-                      <button type="button" :disabled="index === 0" aria-label="Dienstleistung nach oben verschieben" @click="moveService(index, -1)">
+                      <button
+                        type="button"
+                        :disabled="groupIndex === 0"
+                        :aria-label="`${sortLabel(group.id)} nach oben verschieben`"
+                        @click="moveItem(index, group.entries[groupIndex - 1]?.index)"
+                      >
                         <i class="fa-solid fa-arrow-up"></i>
                       </button>
-                      <button type="button" :disabled="index === activeSection.items.length - 1" aria-label="Dienstleistung nach unten verschieben" @click="moveService(index, 1)">
+                      <button
+                        type="button"
+                        :disabled="groupIndex === group.entries.length - 1"
+                        :aria-label="`${sortLabel(group.id)} nach unten verschieben`"
+                        @click="moveItem(index, group.entries[groupIndex + 1]?.index)"
+                      >
                         <i class="fa-solid fa-arrow-down"></i>
                       </button>
                     </div>
-                    <button type="button" class="admin-button ghost" @click="cancelServiceEdit(index)">Abbrechen</button>
-                    <button type="button" class="admin-button primary" @click="saveService(index)"><i class="fa-solid fa-check"></i> Speichern</button>
+                    <button v-if="activeSection.id === 'services'" type="button" class="admin-button ghost" @click="cancelServiceEdit(index)">Abbrechen</button>
+                    <button v-else type="button" class="admin-button ghost" @click="cancelBenefitEdit(index)">Abbrechen</button>
+                    <button v-if="activeSection.id === 'services'" type="button" class="admin-button primary" @click="saveService(index)"><i class="fa-solid fa-check"></i> Speichern</button>
+                    <button v-else type="button" class="admin-button primary" @click="saveBenefit(index)"><i class="fa-solid fa-check"></i> Speichern</button>
                     <button type="button" class="admin-delete" @click="removeItem(activeSection, index)"><i class="fa-solid fa-trash"></i> Eintrag löschen</button>
                   </div>
                   <button v-else type="button" class="admin-delete" @click="removeItem(activeSection, index)"><i class="fa-solid fa-trash"></i> Eintrag löschen</button>

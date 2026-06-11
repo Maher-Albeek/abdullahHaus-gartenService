@@ -107,6 +107,60 @@ const defaultServiceItems: ContentItem[] = [
   },
 ]
 
+const defaultBenefitsContent: ContentItem = {
+  kicker: 'Ihre Vorteile',
+  title: 'Ein Service, auf den Sie sich verlassen können',
+  intro:
+    'Von der ersten Anfrage bis zur erledigten Arbeit sorgen wir für klare Absprachen, saubere Ergebnisse und einen unkomplizierten Ablauf.',
+  concernsKicker: 'Gut zu wissen',
+  concernsTitle: 'Häufige Anliegen, klar beantwortet',
+  concernsIntro:
+    'Gute Zusammenarbeit beginnt mit offenen Antworten. Diese Punkte klären wir bereits vor dem ersten Termin.',
+  buttonLabel: 'Persönlich beraten lassen',
+}
+
+const defaultBenefitItems: ContentItem[] = [
+  {
+    kind: 'benefit',
+    icon: 'fa-solid fa-file-signature',
+    title: 'Transparentes Angebot',
+    text: 'Sie erhalten vor Beginn eine klare Leistungsübersicht und einen nachvollziehbaren Preis.',
+  },
+  {
+    kind: 'benefit',
+    icon: 'fa-solid fa-calendar-check',
+    title: 'Verlässliche Termine',
+    text: 'Wir stimmen den Einsatz verbindlich mit Ihnen ab und informieren Sie bei Änderungen frühzeitig.',
+  },
+  {
+    kind: 'benefit',
+    icon: 'fa-solid fa-list-check',
+    title: 'Passend zu Ihrem Bedarf',
+    text: 'Einmaliger Auftrag oder regelmäßige Pflege: Umfang und Rhythmus richten sich nach Ihrem Objekt.',
+  },
+  {
+    kind: 'benefit',
+    icon: 'fa-solid fa-comments',
+    title: 'Direkter Kontakt',
+    text: 'Ihre Fragen und Wünsche klären Sie direkt mit einem persönlichen Ansprechpartner.',
+  },
+  {
+    kind: 'concern',
+    question: 'Bleiben die Kosten überschaubar?',
+    answer: 'Ja. Wir besprechen den gewünschten Umfang vorab und erstellen darauf basierend Ihr Angebot.',
+  },
+  {
+    kind: 'concern',
+    question: 'Kann ich einzelne Leistungen kombinieren?',
+    answer: 'Ja. Reinigung, Gartenpflege und kleinere Reparaturen können passend zusammengefasst werden.',
+  },
+  {
+    kind: 'concern',
+    question: 'Muss ich während des Termins vor Ort sein?',
+    answer: 'Nicht zwingend. Zugang, Aufgaben und Abnahme können individuell mit Ihnen vereinbart werden.',
+  },
+]
+
 export const defaultWebsiteContent: WebsiteContent = {
   brand: {
     businessName: 'AHG Haus-Gartenservice',
@@ -158,15 +212,8 @@ export const defaultWebsiteContent: WebsiteContent = {
       label: 'Vorteile',
       description: 'Trust-building benefits and service promises.',
       enabled: true,
-      content: {
-        kicker: 'Ihre Vorteile',
-        title: 'Ein Service, auf den Sie sich verlassen können',
-        intro: 'Klare Absprachen, saubere Ergebnisse und ein unkomplizierter Ablauf.',
-      },
-      items: [
-        { title: 'Transparentes Angebot', description: 'Klare Leistungen und nachvollziehbare Preise.' },
-        { title: 'Verlässliche Termine', description: 'Verbindlich geplant und pünktlich ausgeführt.' },
-      ],
+      content: defaultBenefitsContent,
+      items: defaultBenefitItems,
     },
     {
       id: 'gallery',
@@ -273,6 +320,39 @@ const migrateServices = (websiteContent: WebsiteContent) => {
   return websiteContent
 }
 
+const migrateBenefits = (websiteContent: WebsiteContent) => {
+  const benefits = websiteContent.sections.find((section) => section.id === 'benefits')
+  if (!benefits) return websiteContent
+
+  benefits.content = { ...defaultBenefitsContent, ...benefits.content }
+
+  const hasOldStarterBenefits =
+    benefits.items.length <= 2 &&
+    benefits.items.every((item) => item.kind === undefined && item.icon === undefined)
+
+  if (hasOldStarterBenefits) {
+    benefits.items = JSON.parse(JSON.stringify(defaultBenefitItems)) as ContentItem[]
+    return websiteContent
+  }
+
+  benefits.items = benefits.items.map((item) => {
+    const kind = String(item.kind ?? (item.question !== undefined ? 'concern' : 'benefit'))
+    if (kind === 'concern') return { ...item, kind }
+
+    const migrated: ContentItem = { ...item, kind, text: String(item.text ?? item.description ?? '') }
+    delete migrated.description
+    return migrated
+  })
+
+  if (!benefits.items.some((item) => item.kind === 'concern')) {
+    benefits.items.push(
+      ...(JSON.parse(JSON.stringify(defaultBenefitItems.filter((item) => item.kind === 'concern'))) as ContentItem[]),
+    )
+  }
+
+  return websiteContent
+}
+
 export const useWebsiteContentStore = defineStore('websiteContent', () => {
   const content = ref<WebsiteContent>(cloneDefaults())
   const lastSaved = ref<Date | null>(null)
@@ -280,7 +360,7 @@ export const useWebsiteContentStore = defineStore('websiteContent', () => {
   const load = () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) content.value = migrateServices(JSON.parse(stored) as WebsiteContent)
+      if (stored) content.value = migrateBenefits(migrateServices(JSON.parse(stored) as WebsiteContent))
     } catch {
       content.value = cloneDefaults()
     }
