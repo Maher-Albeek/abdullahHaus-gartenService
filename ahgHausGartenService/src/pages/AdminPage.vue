@@ -377,11 +377,11 @@ const deleteUploadedImage = async (imageUrl: string) => {
 const uploadAboutImage = async (files: FileList | File[]) => {
   const images = Array.from(files).filter(isImageFile)
   if (!images.length) {
-    aboutError.value = 'Bitte eine Bilddatei auswÃ¤hlen.'
+    aboutError.value = 'Bitte eine Bilddatei auswählen.'
     return
   }
   if (images.length > 2) {
-    aboutError.value = 'Bitte maximal zwei Bilder auswÃ¤hlen.'
+    aboutError.value = 'Bitte maximal zwei Bilder auswählen.'
     return
   }
 
@@ -417,9 +417,9 @@ const uploadAboutImage = async (files: FileList | File[]) => {
       previousUrls.filter((url) => !uploadedUrls.includes(url)).map(deleteUploadedImage),
     )
     if (cleanupResults.some((result) => result.status === 'rejected')) {
-      aboutError.value = 'Die neuen Bilder wurden gespeichert, aber mindestens ein altes Bild konnte nicht gelÃ¶scht werden.'
+      aboutError.value = 'Die neuen Bilder wurden gespeichert, aber mindestens ein altes Bild konnte nicht gelöscht werden.'
     }
-    showNotice(images.length === 1 ? 'Ãœber-uns-Bild ersetzt' : 'Zwei Ãœber-uns-Bilder ersetzt')
+    showNotice(images.length === 1 ? 'Über-uns-Bild ersetzt' : 'Zwei Über-uns-Bilder ersetzt')
   } catch (error) {
     activeSection.value.content.imageUrl = previousUrls[0] ?? ''
     activeSection.value.content.imageUrl2 = previousUrls[1] ?? ''
@@ -605,7 +605,7 @@ const resetContent = async () => {
     syncServiceDrafts()
     showNotice('Standardinhalte in Datenbank gespeichert')
   } catch {
-    showNotice(store.error || 'ZurÃ¼cksetzen fehlgeschlagen')
+    showNotice(store.error || 'Zurücksetzen fehlgeschlagen')
   }
 }
 
@@ -731,12 +731,12 @@ const showNotice = (message: string) => {
                   :key="imageUrl"
                   class="admin-about-thumbnail"
                   :src="imageUrl"
-                  :alt="`Aktuelles Ãœber-uns-Bild ${index + 1}`"
+                  :alt="`Aktuelles Über-uns-Bild ${index + 1}`"
                 />
               </div>
               <div>
                 <i :class="`fa-solid fa-${aboutUploading ? 'spinner fa-spin' : 'cloud-arrow-up'}`"></i>
-                <strong>{{ aboutUploading ? 'Bild wird in AVIF konvertiert und gespeichert...' : 'Ãœber-uns-Bild hier ablegen' }}</strong>
+                <strong>{{ aboutUploading ? 'Bild wird in AVIF konvertiert und gespeichert...' : 'Über-uns-Bild hier ablegen' }}</strong>
                 <span>Maximal zwei Bilder. Neue Bilder ersetzen die alten und werden automatisch in AVIF konvertiert.</span>
                 <label class="admin-button soft admin-gallery-picker" :class="{ disabled: aboutUploading }">
                   <input
@@ -749,7 +749,7 @@ const showNotice = (message: string) => {
                     @change="uploadAboutImage(($event.target as HTMLInputElement).files ?? [])"
                   />
                   <i class="fa-solid fa-image"></i>
-                  Bild auswÃ¤hlen
+                  Bild auswählen
                 </label>
                 <small v-if="aboutError" class="admin-gallery-error">{{ aboutError }}</small>
               </div>
@@ -954,7 +954,7 @@ const showNotice = (message: string) => {
                   <i class="fa-solid fa-file-pdf"></i> Auswahl als PDF
                 </button>
                 <button type="button" class="admin-button danger" :disabled="!selectedMessageIds.length" @click="deleteSelectedMessages">
-                  <i class="fa-solid fa-trash"></i> Auswahl lÃ¶schen
+                  <i class="fa-solid fa-trash"></i> Auswahl löschen
                 </button>
                 <button type="button" class="admin-button soft" :disabled="messagesLoading" @click="loadMessages()">
                   <i :class="`fa-solid fa-${messagesLoading ? 'spinner fa-spin' : 'rotate'}`"></i> Aktualisieren
@@ -971,11 +971,11 @@ const showNotice = (message: string) => {
             <p v-else-if="!messages.length" class="admin-messages-state">Noch keine Nachrichten vorhanden.</p>
             <div v-else class="admin-messages">
               <div class="admin-message-selection">
-                <label><input type="checkbox" :checked="allMessagesSelected" @change="toggleAllMessages" /> Alle auswÃ¤hlen</label>
-                <span>{{ selectedMessageIds.length }} von {{ messages.length }} ausgewÃ¤hlt</span>
+                <label><input type="checkbox" :checked="allMessagesSelected" @change="toggleAllMessages" /> Alle auswählen</label>
+                <span>{{ selectedMessageIds.length }} von {{ messages.length }} ausgewählt</span>
               </div>
               <article v-for="entry in messages" :key="entry.id" class="admin-message" :class="{ unread: entry.read !== true, open: openMessageIds.includes(entry.id), selected: selectedMessageIds.includes(entry.id) }">
-                <label class="admin-message-checkbox" :aria-label="`${entry.name} auswÃ¤hlen`">
+                <label class="admin-message-checkbox" :aria-label="`${entry.name} auswählen`">
                   <input v-model="selectedMessageIds" type="checkbox" :value="entry.id" @click.stop />
                 </label>
                 <button type="button" class="admin-message-summary" @click.prevent.stop="toggleMessage(entry)">
