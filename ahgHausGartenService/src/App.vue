@@ -4,7 +4,7 @@ import CookieConsent from './component/CookieConsent'
 import { useWebsiteContentStore } from './stores/websiteContent'
 
 const instance = getCurrentInstance()
-const isAdmin = computed(() => instance?.proxy?.$route?.name === 'admin')
+const isAdmin = computed(() => ['admin', 'login', 'reset-password'].includes(String(instance?.proxy?.$route?.name)))
 const contentStore = useWebsiteContentStore()
 </script>
 

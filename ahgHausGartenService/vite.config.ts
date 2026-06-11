@@ -1,8 +1,9 @@
 import { fileURLToPath, URL } from 'node:url'
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto'
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import path from 'node:path'
+import { promisify } from 'node:util'
 
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -11,12 +12,20 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 import {
   configureDatabase,
+  consumePasswordResetToken,
   executeSqlOperation,
+  findUserByEmail,
+  listUsers,
   listSqlTables,
+  recordUserLogin,
   readGalleryRecords,
   readMessageRecords,
   readSqlTable,
   readWebsiteContent,
+  saveUser,
+  storePasswordResetToken,
+  syncConfiguredUser,
+  updateUser,
   writeGalleryRecords,
   writeMessageRecords,
   writeWebsiteContent,
@@ -37,11 +46,16 @@ const galleryDirectory = fileURLToPath(new URL('./public/gallery', import.meta.u
 const galleryDatabase = fileURLToPath(new URL('./database/gallery.json', import.meta.url))
 const contentDatabase = fileURLToPath(new URL('./database/website-content.json', import.meta.url))
 const messagesDatabase = fileURLToPath(new URL('./database/messages.json', import.meta.url))
-const databaseFiles = [galleryDatabase, contentDatabase, messagesDatabase]
+const usersDatabase = fileURLToPath(new URL('./database/users.json', import.meta.url))
+const databaseFiles = [galleryDatabase, contentDatabase, messagesDatabase, usersDatabase]
+const sessions = new Map<string, { user: { id: string; email: string; displayName: string; role: string }; expiresAt: number }>()
+const sessionLifetime = 60 * 60 * 8
+const scryptAsync = promisify(scrypt)
 
 const databaseApi = (): Plugin => {
   const middleware: Connect.NextHandleFunction = async (request, response, next) => {
     if (!request.url?.startsWith('/api/database')) return next()
+    if (!requirePermission(request, response, 'database')) return
 
     try {
       const url = new URL(request.url, 'http://localhost')
@@ -108,6 +122,274 @@ const sendJson = (response: ServerResponse, status: number, value: unknown) => {
   response.end(JSON.stringify(value))
 }
 
+const parseCookies = (request: Connect.IncomingMessage) =>
+  Object.fromEntries(
+    String(request.headers.cookie ?? '')
+      .split(';')
+      .map((cookie) => cookie.trim().split('='))
+      .filter(([key, value]) => key && value)
+      .map(([key, value]) => [key, decodeURIComponent(value)]),
+  )
+
+const currentSession = (request: Connect.IncomingMessage) => {
+  const token = parseCookies(request).ahg_session
+  const session = token ? sessions.get(token) : undefined
+  if (token && session && session.expiresAt <= Date.now()) {
+    sessions.delete(token)
+    return undefined
+  }
+  return session
+}
+
+const requireAuthentication = (request: Connect.IncomingMessage, response: ServerResponse) => {
+  if (currentSession(request)) return true
+  sendJson(response, 401, { message: 'Authentication required.' })
+  return false
+}
+
+type UserRole = 'boss' | 'owner' | 'editor'
+const validRoles: UserRole[] = ['boss', 'owner', 'editor']
+const roleAllows = (role: string, permission: 'database' | 'users' | 'messages' | 'content') => {
+  if (role === 'boss') return true
+  if (role === 'owner') return permission !== 'database'
+  return role === 'editor' && permission === 'content'
+}
+const requirePermission = (
+  request: Connect.IncomingMessage,
+  response: ServerResponse,
+  permission: 'database' | 'users' | 'messages' | 'content',
+) => {
+  const session = currentSession(request)
+  if (!session) {
+    sendJson(response, 401, { message: 'Authentication required.' })
+    return false
+  }
+  if (!roleAllows(session.user.role, permission)) {
+    sendJson(response, 403, { message: 'You do not have permission for this action.' })
+    return false
+  }
+  return true
+}
+
+const hashPassword = async (password: string) => {
+  const salt = randomBytes(16).toString('hex')
+  const hash = await scryptAsync(password, salt, 64) as Buffer
+  return `scrypt$${salt}$${hash.toString('hex')}`
+}
+
+const verifyPassword = async (password: string, storedHash: string) => {
+  const [algorithm, salt, expectedHex] = storedHash.split('$')
+  if (algorithm !== 'scrypt' || !salt || !expectedHex) return false
+  const expected = Buffer.from(expectedHex, 'hex')
+  const actual = await scryptAsync(password, salt, expected.length) as Buffer
+  return expected.length === actual.length && timingSafeEqual(expected, actual)
+}
+
+const authApi = (
+  adminEmail: string | undefined,
+  adminPassword: string | undefined,
+  brevoApiKey: string | undefined,
+  emailFrom: string | undefined,
+  emailFromName: string,
+  appUrl: string,
+): Plugin => {
+  let initialUserReady: Promise<void> | undefined
+  const ensureInitialUser = () => {
+    if (!adminEmail || !adminPassword) return Promise.resolve()
+    initialUserReady ??= hashPassword(adminPassword).then((passwordHash) =>
+      syncConfiguredUser({
+        id: randomUUID(),
+        email: adminEmail.trim().toLowerCase(),
+        passwordHash,
+        displayName: 'Administrator',
+        role: 'boss',
+        isActive: true,
+      }, usersDatabase),
+    )
+    return initialUserReady
+  }
+
+  const middleware: Connect.NextHandleFunction = async (request, response, next) => {
+    if (!request.url?.startsWith('/api/auth')) return next()
+
+    try {
+      const pathname = new URL(request.url, 'http://localhost').pathname
+      if (pathname === '/api/auth/session' && request.method === 'GET') {
+        const session = currentSession(request)
+        sendJson(response, session ? 200 : 401, session ? { user: session.user } : { message: 'Not authenticated.' })
+        return
+      }
+
+      if (pathname === '/api/auth/login' && request.method === 'POST') {
+        if (!request.headers['content-type']?.startsWith('application/json')) {
+          sendJson(response, 415, { message: 'Only JSON content is accepted.' })
+          return
+        }
+        await ensureInitialUser()
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as { email?: unknown; password?: unknown }
+        const email = String(body.email ?? '').trim().toLowerCase()
+        const password = String(body.password ?? '')
+        const user = email && password ? await findUserByEmail(email, usersDatabase) : null
+        if (!user?.isActive || !(await verifyPassword(password, user.passwordHash))) {
+          sendJson(response, 401, { message: 'Invalid email or password.' })
+          return
+        }
+        const token = randomBytes(32).toString('hex')
+        const publicUser = { id: user.id, email: user.email, displayName: user.displayName, role: user.role }
+        sessions.set(token, { user: publicUser, expiresAt: Date.now() + sessionLifetime * 1000 })
+        response.setHeader(
+          'Set-Cookie',
+          `ahg_session=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${sessionLifetime}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+        )
+        await recordUserLogin(user.id)
+        sendJson(response, 200, { user: publicUser })
+        return
+      }
+
+      if (pathname === '/api/auth/logout' && request.method === 'POST') {
+        const token = parseCookies(request).ahg_session
+        if (token) sessions.delete(token)
+        response.setHeader('Set-Cookie', 'ahg_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0')
+        sendJson(response, 200, { success: true })
+        return
+      }
+
+      if (pathname === '/api/auth/change-password' && request.method === 'POST') {
+        const session = currentSession(request)
+        if (!session) {
+          sendJson(response, 401, { message: 'Authentication required.' })
+          return
+        }
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as { currentPassword?: unknown; newPassword?: unknown }
+        const currentPassword = String(body.currentPassword ?? '')
+        const newPassword = String(body.newPassword ?? '')
+        const user = await findUserByEmail(session.user.email, usersDatabase)
+        if (!user || !(await verifyPassword(currentPassword, user.passwordHash))) {
+          sendJson(response, 400, { message: 'Current password is incorrect.' })
+          return
+        }
+        if (newPassword.length < 8) {
+          sendJson(response, 400, { message: 'New password must contain at least 8 characters.' })
+          return
+        }
+        await updateUser(user.id, { passwordHash: await hashPassword(newPassword) }, usersDatabase)
+        sendJson(response, 200, { success: true })
+        return
+      }
+
+      if (pathname === '/api/auth/forgot-password' && request.method === 'POST') {
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as { email?: unknown }
+        const email = String(body.email ?? '').trim().toLowerCase()
+        const user = email ? await findUserByEmail(email, usersDatabase) : null
+        if (user?.isActive && brevoApiKey && emailFrom) {
+          const token = randomBytes(32).toString('hex')
+          await storePasswordResetToken(createHash('sha256').update(token).digest('hex'), user.id, new Date(Date.now() + 60 * 60 * 1000))
+          const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${token}`
+          const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+              sender: { email: emailFrom, name: emailFromName },
+              to: [{ email: user.email, name: user.displayName || user.email }],
+              subject: 'Passwort zurücksetzen',
+              htmlContent: `<p>Sie haben eine Passwort-Zurücksetzung angefordert.</p><p><a href="${resetUrl}">Passwort zurücksetzen</a></p><p>Der Link ist eine Stunde gültig.</p>`,
+            }),
+          })
+          if (!emailResponse.ok) throw new Error('Password reset email could not be sent.')
+        }
+        sendJson(response, 200, { message: 'If the account exists, a reset email has been sent.' })
+        return
+      }
+
+      if (pathname === '/api/auth/reset-password' && request.method === 'POST') {
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as { token?: unknown; password?: unknown }
+        const token = String(body.token ?? '')
+        const password = String(body.password ?? '')
+        if (password.length < 8) {
+          sendJson(response, 400, { message: 'Password must contain at least 8 characters.' })
+          return
+        }
+        const updated = await consumePasswordResetToken(createHash('sha256').update(token).digest('hex'), await hashPassword(password))
+        sendJson(response, updated ? 200 : 400, updated ? { success: true } : { message: 'Reset link is invalid or expired.' })
+        return
+      }
+
+      sendJson(response, 405, { message: 'Method not allowed.' })
+    } catch (error) {
+      sendJson(response, 500, { message: error instanceof Error ? error.message : 'Authentication request failed.' })
+    }
+  }
+
+  return {
+    name: 'auth-api',
+    configureServer(server) {
+      server.middlewares.use(middleware)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(middleware)
+    },
+  }
+}
+
+const usersApi = (): Plugin => {
+  const middleware: Connect.NextHandleFunction = async (request, response, next) => {
+    if (!request.url?.startsWith('/api/users')) return next()
+    if (!requirePermission(request, response, 'users')) return
+    try {
+      const session = currentSession(request)!
+      if (request.method === 'GET') {
+        sendJson(response, 200, await listUsers(usersDatabase))
+        return
+      }
+      const body = JSON.parse((await readBody(request)).toString('utf8')) as {
+        id?: unknown; email?: unknown; displayName?: unknown; role?: unknown; isActive?: unknown; password?: unknown
+      }
+      const role = String(body.role ?? '')
+      if (!validRoles.includes(role as UserRole) || (role === 'boss' && session.user.role !== 'boss')) {
+        sendJson(response, 403, { message: 'This role cannot be assigned.' })
+        return
+      }
+      if (request.method === 'POST') {
+        const email = String(body.email ?? '').trim().toLowerCase()
+        const password = String(body.password ?? '')
+        if (!email.includes('@') || password.length < 8) {
+          sendJson(response, 400, { message: 'Valid email and a password with at least 8 characters are required.' })
+          return
+        }
+        await saveUser({
+          id: randomUUID(), email, passwordHash: await hashPassword(password),
+          displayName: String(body.displayName ?? '').trim(), role, isActive: true,
+        }, usersDatabase)
+        sendJson(response, 201, { success: true })
+        return
+      }
+      if (request.method === 'PATCH') {
+        const id = String(body.id ?? '')
+        const target = (await listUsers(usersDatabase)).find((user) => user.id === id)
+        if (!target || (target.role === 'boss' && session.user.role !== 'boss')) {
+          sendJson(response, 403, { message: 'This user cannot be changed.' })
+          return
+        }
+        await updateUser(id, {
+          displayName: String(body.displayName ?? target.displayName).trim(),
+          role,
+          isActive: Boolean(body.isActive),
+        }, usersDatabase)
+        sendJson(response, 200, { success: true })
+        return
+      }
+      sendJson(response, 405, { message: 'Method not allowed.' })
+    } catch (error) {
+      sendJson(response, 400, { message: error instanceof Error ? error.message : 'User request failed.' })
+    }
+  }
+  return {
+    name: 'users-api',
+    configureServer(server) { server.middlewares.use(middleware) },
+    configurePreviewServer(server) { server.middlewares.use(middleware) },
+  }
+}
+
 const contentApi = (): Plugin => {
   const middleware: Connect.NextHandleFunction = async (request, response, next) => {
     if (!request.url?.startsWith('/api/content')) return next()
@@ -124,6 +406,7 @@ const contentApi = (): Plugin => {
       }
 
       if (request.method === 'PUT') {
+        if (!requirePermission(request, response, 'content')) return
         if (!request.headers['content-type']?.startsWith('application/json')) {
           sendJson(response, 415, { message: 'Only JSON content is accepted.' })
           return
@@ -172,6 +455,7 @@ const galleryApi = (): Plugin => {
       }
 
       if (request.method === 'POST') {
+        if (!requirePermission(request, response, 'content')) return
         if (!request.headers['content-type']?.startsWith('image/avif')) {
           sendJson(response, 415, { message: 'Only AVIF uploads are accepted.' })
           return
@@ -211,6 +495,7 @@ const galleryApi = (): Plugin => {
       }
 
       if (request.method === 'DELETE') {
+        if (!requirePermission(request, response, 'content')) return
         const imageUrl = decodeURIComponent(new URL(request.url, 'http://localhost').searchParams.get('path') ?? '')
         if (!imageUrl.startsWith('/gallery/')) {
           sendJson(response, 400, { message: 'Only uploaded gallery images can be deleted.' })
@@ -246,6 +531,7 @@ const messagesApi = (): Plugin => {
 
     try {
       if (request.method === 'GET') {
+        if (!requirePermission(request, response, 'messages')) return
         sendJson(response, 200, await readMessages())
         return
       }
@@ -281,6 +567,7 @@ const messagesApi = (): Plugin => {
       }
 
       if (request.method === 'PATCH') {
+        if (!requirePermission(request, response, 'messages')) return
         const id = new URL(request.url, 'http://localhost').searchParams.get('id')
         if (!id) {
           sendJson(response, 400, { message: 'Message id is required.' })
@@ -294,6 +581,7 @@ const messagesApi = (): Plugin => {
       }
 
       if (request.method === 'DELETE') {
+        if (!requirePermission(request, response, 'messages')) return
         const id = new URL(request.url, 'http://localhost').searchParams.get('id')
         if (!id) {
           sendJson(response, 400, { message: 'Message id is required.' })
@@ -335,6 +623,15 @@ configureDatabase(process.env.DATABASE_URL || env.DATABASE_URL)
 export default defineConfig({
   plugins: [
     databaseWatchGuard(),
+    authApi(
+      process.env.ADMIN_EMAIL || env.ADMIN_EMAIL,
+      process.env.ADMIN_PASSWORD || env.ADMIN_PASSWORD,
+      process.env.BREVO_API_KEY || env.BREVO_API_KEY,
+      process.env.EMAIL_FROM || env.EMAIL_FROM,
+      process.env.EMAIL_FROM_NAME || env.EMAIL_FROM_NAME || 'AHG Haus & Gartenservice',
+      process.env.APP_URL || env.APP_URL || 'http://localhost:5173',
+    ),
+    usersApi(),
     contentApi(),
     galleryApi(),
     messagesApi(),

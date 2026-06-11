@@ -40,6 +40,15 @@ type MessageRecord = {
   createdAt: string
   read: boolean
 }
+export type UserRecord = {
+  id: string
+  email: string
+  passwordHash: string
+  displayName: string
+  role: string
+  isActive: boolean
+}
+export type PublicUserRecord = Omit<UserRecord, 'passwordHash'>
 
 export const configureDatabase = (databaseUrl: string | undefined) => {
   if (!databaseUrl || pool) return
@@ -50,13 +59,38 @@ export const hasRemoteDatabase = () => pool !== null
 
 const ensureSchema = async () => {
   if (!pool) return
-  schemaReady ??= pool.query(`
-    CREATE TABLE IF NOT EXISTS app_documents (
-      document_key VARCHAR(100) PRIMARY KEY,
-      data JSON NOT NULL,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )
-  `).then(() => undefined)
+  schemaReady ??= Promise.all([
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS app_documents (
+        document_key VARCHAR(100) PRIMARY KEY,
+        data JSON NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `),
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(254) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        display_name VARCHAR(100) NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'admin',
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        last_login_at TIMESTAMP NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY users_email_unique (email)
+      )
+    `),
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        token_hash CHAR(64) PRIMARY KEY,
+        user_id BIGINT UNSIGNED NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX password_reset_user_id (user_id)
+      )
+    `),
+  ]).then(() => undefined)
   await schemaReady
 }
 
@@ -105,6 +139,7 @@ const jsonObject = (value: unknown): ContentItem => {
 export const readWebsiteContent = async (fallbackFile: string): Promise<WebsiteContent | null> => {
   if (!pool) return readDocument<WebsiteContent | null>('website-content', fallbackFile, null)
 
+  await ensureSchema()
   const [brandRows] = await pool.query<RowDataPacket[]>('SELECT * FROM brand ORDER BY id LIMIT 1')
   const [contactRows] = await pool.query<RowDataPacket[]>('SELECT * FROM contact ORDER BY id LIMIT 1')
   const [sectionRows] = await pool.query<RowDataPacket[]>('SELECT * FROM sections ORDER BY sort_order, id')
@@ -150,6 +185,7 @@ export const writeWebsiteContent = async (content: WebsiteContent, fallbackFile:
     return
   }
 
+  await ensureSchema()
   const connection = await pool.getConnection()
   try {
     await connection.beginTransaction()
@@ -214,6 +250,7 @@ export const writeWebsiteContent = async (content: WebsiteContent, fallbackFile:
 
 export const readGalleryRecords = async (fallbackFile: string): Promise<GalleryRecord[]> => {
   if (!pool) return readDocument<GalleryRecord[]>('gallery', fallbackFile, [])
+  await ensureSchema()
   const [rows] = await pool.query<RowDataPacket[]>('SELECT image_url, alt FROM gallery_images ORDER BY sort_order, id')
   return rows.map((row) => ({ imageUrl: String(row.image_url), alt: String(row.alt ?? '') }))
 }
@@ -223,6 +260,7 @@ export const writeGalleryRecords = async (records: GalleryRecord[], fallbackFile
     await writeDocument('gallery', records, fallbackFile)
     return
   }
+  await ensureSchema()
   const connection = await pool.getConnection()
   try {
     await connection.beginTransaction()
@@ -244,6 +282,7 @@ export const writeGalleryRecords = async (records: GalleryRecord[], fallbackFile
 
 export const readMessageRecords = async (fallbackFile: string): Promise<MessageRecord[]> => {
   if (!pool) return readDocument<MessageRecord[]>('messages', fallbackFile, [])
+  await ensureSchema()
   const [rows] = await pool.query<RowDataPacket[]>(
     'SELECT id, name, email, service, message, created_at, is_read FROM messages ORDER BY created_at DESC',
   )
@@ -263,6 +302,7 @@ export const writeMessageRecords = async (records: MessageRecord[], fallbackFile
     await writeDocument('messages', records, fallbackFile)
     return
   }
+  await ensureSchema()
   const connection = await pool.getConnection()
   try {
     await connection.beginTransaction()
@@ -283,6 +323,146 @@ export const writeMessageRecords = async (records: MessageRecord[], fallbackFile
   }
 }
 
+export const findUserByEmail = async (email: string, fallbackFile: string): Promise<UserRecord | null> => {
+  if (!pool) {
+    const users = await readDocument<UserRecord[]>('users', fallbackFile, [])
+    return users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null
+  }
+
+  await ensureSchema()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    'SELECT id, email, password_hash, display_name, role, is_active FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1',
+    [email],
+  )
+  const user = rows[0]
+  if (!user) return null
+  return {
+    id: String(user.id),
+    email: String(user.email),
+    passwordHash: String(user.password_hash),
+    displayName: String(user.display_name ?? ''),
+    role: String(user.role),
+    isActive: Boolean(user.is_active),
+  }
+}
+
+export const syncConfiguredUser = async (user: UserRecord, fallbackFile: string) => {
+  if (!pool) {
+    const users = await readDocument<UserRecord[]>('users', fallbackFile, [])
+    const existingIndex = users.findIndex((entry) => entry.email.toLowerCase() === user.email.toLowerCase())
+    if (existingIndex >= 0) users[existingIndex] = { ...users[existingIndex], ...user, id: users[existingIndex]!.id }
+    else users.push(user)
+    await writeDocument('users', users, fallbackFile)
+    return
+  }
+
+  await ensureSchema()
+  await pool.query(
+    `INSERT INTO users (email, password_hash, display_name, role, is_active)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), display_name = VALUES(display_name),
+     role = VALUES(role), is_active = VALUES(is_active)`,
+    [user.email, user.passwordHash, user.displayName, user.role, user.isActive],
+  )
+}
+
+export const listUsers = async (fallbackFile: string): Promise<PublicUserRecord[]> => {
+  if (!pool) {
+    const users = await readDocument<UserRecord[]>('users', fallbackFile, [])
+    return users.map(({ passwordHash: _passwordHash, ...user }) => user)
+  }
+  await ensureSchema()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    'SELECT id, email, display_name, role, is_active FROM users ORDER BY display_name, email',
+  )
+  return rows.map((user) => ({
+    id: String(user.id),
+    email: String(user.email),
+    displayName: String(user.display_name ?? ''),
+    role: String(user.role),
+    isActive: Boolean(user.is_active),
+  }))
+}
+
+export const saveUser = async (user: UserRecord, fallbackFile: string) => {
+  if (!pool) {
+    const users = await readDocument<UserRecord[]>('users', fallbackFile, [])
+    const existingIndex = users.findIndex((entry) => entry.id === user.id)
+    if (existingIndex >= 0) users[existingIndex] = user
+    else users.push(user)
+    await writeDocument('users', users, fallbackFile)
+    return
+  }
+  await ensureSchema()
+  await pool.query(
+    `INSERT INTO users (email, password_hash, display_name, role, is_active)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), role = VALUES(role), is_active = VALUES(is_active)`,
+    [user.email, user.passwordHash, user.displayName, user.role, user.isActive],
+  )
+}
+
+export const updateUser = async (
+  id: string,
+  values: { displayName?: string; role?: string; isActive?: boolean; passwordHash?: string },
+  fallbackFile: string,
+) => {
+  if (!pool) {
+    const users = await readDocument<UserRecord[]>('users', fallbackFile, [])
+    const index = users.findIndex((user) => user.id === id)
+    if (index < 0) throw new Error('User not found.')
+    users[index] = { ...users[index]!, ...values }
+    await writeDocument('users', users, fallbackFile)
+    return
+  }
+  await ensureSchema()
+  const fields: string[] = []
+  const params: unknown[] = []
+  if (values.displayName !== undefined) { fields.push('display_name = ?'); params.push(values.displayName) }
+  if (values.role !== undefined) { fields.push('role = ?'); params.push(values.role) }
+  if (values.isActive !== undefined) { fields.push('is_active = ?'); params.push(values.isActive) }
+  if (values.passwordHash !== undefined) { fields.push('password_hash = ?'); params.push(values.passwordHash) }
+  if (!fields.length) return
+  await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, [...params, id])
+}
+
+export const storePasswordResetToken = async (tokenHash: string, userId: string, expiresAt: Date) => {
+  const db = await requirePool()
+  await db.query('DELETE FROM password_reset_tokens WHERE user_id = ? OR expires_at < CURRENT_TIMESTAMP', [userId])
+  await db.query(
+    'INSERT INTO password_reset_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)',
+    [tokenHash, userId, expiresAt],
+  )
+}
+
+export const consumePasswordResetToken = async (tokenHash: string, passwordHash: string) => {
+  const db = await requirePool()
+  const connection = await db.getConnection()
+  try {
+    await connection.beginTransaction()
+    const [rows] = await connection.query<RowDataPacket[]>(
+      'SELECT user_id FROM password_reset_tokens WHERE token_hash = ? AND expires_at > CURRENT_TIMESTAMP FOR UPDATE',
+      [tokenHash],
+    )
+    if (!rows[0]) return false
+    await connection.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, rows[0].user_id])
+    await connection.query('DELETE FROM password_reset_tokens WHERE user_id = ?', [rows[0].user_id])
+    await connection.commit()
+    return true
+  } catch (error) {
+    await connection.rollback()
+    throw error
+  } finally {
+    connection.release()
+  }
+}
+
+export const recordUserLogin = async (id: string) => {
+  if (!pool) return
+  await ensureSchema()
+  await pool.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?', [id])
+}
+
 const identifier = (value: string) => {
   if (!/^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(value)) throw new Error(`Invalid SQL identifier: ${value}`)
   return `\`${value}\``
@@ -293,6 +473,7 @@ const sqlValue = (value: unknown) =>
 
 const requirePool = async () => {
   if (!pool) throw new Error('DATABASE_URL is not configured.')
+  await ensureSchema()
   return pool
 }
 

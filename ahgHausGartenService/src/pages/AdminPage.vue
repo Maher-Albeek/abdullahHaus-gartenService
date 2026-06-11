@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useWebsiteContentStore, type ContentItem, type WebsiteSection } from '../stores/websiteContent'
 import DatabasePanel from '../component/DatabasePanel.vue'
+import UsersPanel from '../component/UsersPanel.vue'
 import { imgToAvif } from '../utils/imgToAvif'
 import { createMessagesPdfBlob } from '../utils/messagesToPdf'
 
@@ -16,6 +18,11 @@ type ContactMessage = {
 }
 
 const store = useWebsiteContentStore()
+const router = useRouter()
+const currentRole = ref('boss')
+const canManageUsers = computed(() => ['boss', 'owner'].includes(currentRole.value))
+const canAccessMessages = computed(() => ['boss', 'owner'].includes(currentRole.value))
+const canAccessDatabase = computed(() => currentRole.value === 'boss')
 const storedActiveId = window.localStorage.getItem('ahg-admin-active-panel')
 const validActiveIds = ['general', 'messages', 'database', ...store.content.sections.map((section) => section.id)]
 const activeId = ref(storedActiveId && validActiveIds.includes(storedActiveId) ? storedActiveId : 'general')
@@ -623,6 +630,26 @@ const showNotice = (message: string) => {
   notice.value = message
   window.setTimeout(() => (notice.value = ''), 2400)
 }
+
+const logout = async () => {
+  await fetch('/api/auth/logout', { method: 'POST' })
+  await router.replace('/login')
+}
+
+const loadSessionRole = async () => {
+  try {
+    const response = await fetch('/api/auth/session')
+    if (!response.ok) return
+    const result = await response.json() as { user?: { role?: string } }
+    if (!result.user?.role || !['boss', 'owner', 'editor'].includes(result.user.role)) return
+    currentRole.value = result.user.role
+    if (isDatabase.value && !canAccessDatabase.value) activeId.value = 'general'
+    if (isMessages.value && !canAccessMessages.value) activeId.value = 'general'
+  } catch {
+    // Keep the current view until the route guard handles an invalid session.
+  }
+}
+onMounted(loadSessionRole)
 </script>
 
 <template>
@@ -647,12 +674,12 @@ const showNotice = (message: string) => {
           <span>General</span>
           <i class="fa-solid fa-chevron-right"></i>
         </button>
-        <button type="button" :class="{ active: isMessages }" @click="openMessages">
+        <button v-if="canAccessMessages" type="button" :class="{ active: isMessages }" @click="openMessages">
           <i class="fa-solid fa-inbox"></i>
           <span>Nachrichten <b v-if="unreadMessageCount" class="admin-unread-badge">{{ unreadMessageCount }}</b></span>
           <i class="fa-solid fa-chevron-right"></i>
         </button>
-        <button type="button" :class="{ active: isDatabase }" @click="activeId = 'database'">
+        <button v-if="canAccessDatabase" type="button" :class="{ active: isDatabase }" @click="activeId = 'database'">
           <i class="fa-solid fa-database"></i>
           <span>Datenbank</span>
           <i class="fa-solid fa-chevron-right"></i>
@@ -679,6 +706,7 @@ const showNotice = (message: string) => {
 
       <div class="admin-sidebar-footer">
         <a href="/" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Website öffnen</a>
+        <button type="button" @click="logout"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
       </div>
     </aside>
 
@@ -1030,6 +1058,7 @@ const showNotice = (message: string) => {
               <label v-for="(value, key) in store.content.contact" :key="key"><span>{{ labelFor(String(key)) }}</span><input v-model="store.content.contact[key]" type="text" /></label>
             </div>
           </section>
+          <UsersPanel v-if="isGeneral" :can-manage="canManageUsers" />
 
           <button v-if="isGeneral" type="button" class="admin-reset" @click="resetContent"><i class="fa-solid fa-arrow-rotate-left"></i> Auf Standardinhalte zurücksetzen</button>
         </div>

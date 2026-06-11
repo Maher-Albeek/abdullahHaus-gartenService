@@ -6,6 +6,7 @@ import router from './router'
 import { useWebsiteContentStore } from './stores/websiteContent'
 import './style.css'
 import './admin.css'
+import './login.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 
 const app = createApp(App)
