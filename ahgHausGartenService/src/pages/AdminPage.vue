@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useWebsiteContentStore, type ContentItem, type WebsiteSection } from '../stores/websiteContent'
+import DatabasePanel from '../component/DatabasePanel.vue'
 import { imgToAvif } from '../utils/imgToAvif'
 import { createMessagesPdfBlob } from '../utils/messagesToPdf'
 
@@ -16,7 +17,7 @@ type ContactMessage = {
 
 const store = useWebsiteContentStore()
 const storedActiveId = window.localStorage.getItem('ahg-admin-active-panel')
-const validActiveIds = ['general', 'messages', ...store.content.sections.map((section) => section.id)]
+const validActiveIds = ['general', 'messages', 'database', ...store.content.sections.map((section) => section.id)]
 const activeId = ref(storedActiveId && validActiveIds.includes(storedActiveId) ? storedActiveId : 'general')
 const search = ref('')
 const notice = ref('')
@@ -99,6 +100,7 @@ const activeSection = computed(
 )
 const isGeneral = computed(() => activeId.value === 'general')
 const isMessages = computed(() => activeId.value === 'messages')
+const isDatabase = computed(() => activeId.value === 'database')
 const filteredSections = computed(() => {
   const query = search.value.trim().toLowerCase()
   return query
@@ -177,6 +179,14 @@ const loadMessages = async (notify = false) => {
 const openMessages = () => {
   activeId.value = 'messages'
   void loadMessages()
+}
+
+const refreshDatabaseData = async (table: string) => {
+  if (table === 'app_documents') {
+    await store.load()
+    await store.loadGallery()
+    await loadMessages()
+  }
 }
 
 const toggleMessage = async (entry: ContactMessage) => {
@@ -642,6 +652,11 @@ const showNotice = (message: string) => {
           <span>Nachrichten <b v-if="unreadMessageCount" class="admin-unread-badge">{{ unreadMessageCount }}</b></span>
           <i class="fa-solid fa-chevron-right"></i>
         </button>
+        <button type="button" :class="{ active: isDatabase }" @click="activeId = 'database'">
+          <i class="fa-solid fa-database"></i>
+          <span>Datenbank</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
       </nav>
 
       <div class="admin-nav-heading">
@@ -671,9 +686,9 @@ const showNotice = (message: string) => {
       <header class="admin-topbar">
         <div>
           <p>Website-Verwaltung</p>
-          <h1>{{ isGeneral ? 'General' : isMessages ? 'Nachrichten' : 'Inhalte & Bereiche' }}</h1>
+          <h1>{{ isGeneral ? 'General' : isMessages ? 'Nachrichten' : isDatabase ? 'Datenbank' : 'Inhalte & Bereiche' }}</h1>
         </div>
-        <div class="admin-actions">
+        <div v-if="!isDatabase" class="admin-actions">
           <button type="button" class="admin-notification-button" aria-label="Nachrichten öffnen" @click="openMessages">
             <i class="fa-solid fa-bell"></i>
             <b v-if="unreadMessageCount">{{ unreadMessageCount }}</b>
@@ -692,9 +707,10 @@ const showNotice = (message: string) => {
         </div>
       </header>
 
-      <div class="admin-workspace" :class="{ 'admin-workspace-single': !isGeneral || isMessages }">
+      <div class="admin-workspace" :class="{ 'admin-workspace-single': !isGeneral || isMessages || isDatabase }">
         <div class="admin-editor">
-          <section v-if="!isGeneral && !isMessages" class="admin-card">
+          <DatabasePanel v-if="isDatabase" @changed="refreshDatabaseData" />
+          <section v-if="!isGeneral && !isMessages && !isDatabase" class="admin-card">
             <div class="admin-card-header">
               <div><p>Aktiver Bereich</p><h2>{{ activeSection.label }}</h2><span>{{ activeSection.description }}</span></div>
               <label class="admin-switch"><input v-model="activeSection.enabled" type="checkbox" /><span></span>{{ activeSection.enabled ? 'Sichtbar' : 'Ausgeblendet' }}</label>
@@ -758,7 +774,7 @@ const showNotice = (message: string) => {
 
           <section
             v-for="group in itemGroups"
-            v-show="!isGeneral && !isMessages && (group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id))"
+            v-show="!isGeneral && !isMessages && !isDatabase && (group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id))"
             :key="group.id"
             class="admin-card"
             :data-content-group="group.id"

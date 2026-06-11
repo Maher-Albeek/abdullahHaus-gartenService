@@ -4,11 +4,20 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import path from 'node:path'
 
-import { defineConfig, type Connect, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
+import {
+  configureDatabase,
+  executeSqlOperation,
+  executeRawQuery,
+  listSqlTables,
+  readDocument,
+  readSqlTable,
+  writeDocument,
+} from './server/database'
 
 type GalleryRecord = { imageUrl: string; alt: string }
 type MessageRecord = {
@@ -27,30 +36,73 @@ const contentDatabase = fileURLToPath(new URL('./database/website-content.json',
 const messagesDatabase = fileURLToPath(new URL('./database/messages.json', import.meta.url))
 const databaseFiles = [galleryDatabase, contentDatabase, messagesDatabase]
 
-const readMessages = async () => {
-  try {
-    return JSON.parse(await readFile(messagesDatabase, 'utf8')) as MessageRecord[]
-  } catch {
-    return []
+const databaseApi = (): Plugin => {
+  const middleware: Connect.NextHandleFunction = async (request, response, next) => {
+    if (!request.url?.startsWith('/api/database')) return next()
+
+    try {
+      const url = new URL(request.url, 'http://localhost')
+      const requestedTable = url.searchParams.get('table')
+
+      if (request.url.startsWith('/api/database/query')) {
+        if (request.method !== 'POST') {
+          sendJson(response, 405, { message: 'Method not allowed.' })
+          return
+        }
+        if (!request.headers['content-type']?.startsWith('application/json')) {
+          sendJson(response, 415, { message: 'Only JSON content is accepted.' })
+          return
+        }
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as { query?: string }
+        sendJson(response, 200, await executeRawQuery(String(body.query ?? '')))
+        return
+      }
+
+      if (request.method === 'GET') {
+        sendJson(response, 200, requestedTable ? await readSqlTable(requestedTable) : await listSqlTables())
+        return
+      }
+
+      if (!request.headers['content-type']?.startsWith('application/json')) {
+        sendJson(response, 415, { message: 'Only JSON content is accepted.' })
+        return
+      }
+
+      const body = JSON.parse((await readBody(request)).toString('utf8')) as Parameters<typeof executeSqlOperation>[0]
+      sendJson(response, body.operation === 'createTable' ? 201 : 200, await executeSqlOperation(body))
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      sendJson(response, code === 'ENOENT' ? 404 : 400, {
+        message: error instanceof Error ? error.message : 'Database request failed.',
+      })
+    }
   }
+
+  return {
+    name: 'database-api',
+    configureServer(server) {
+      server.middlewares.use(middleware)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(middleware)
+    },
+  }
+}
+
+const readMessages = async () => {
+  return readDocument<MessageRecord[]>('messages', messagesDatabase, [])
 }
 
 const writeMessages = async (records: MessageRecord[]) => {
-  await mkdir(path.dirname(messagesDatabase), { recursive: true })
-  await writeFile(messagesDatabase, `${JSON.stringify(records, null, 2)}\n`, 'utf8')
+  await writeDocument('messages', records, messagesDatabase)
 }
 
 const readGallery = async () => {
-  try {
-    return JSON.parse(await readFile(galleryDatabase, 'utf8')) as GalleryRecord[]
-  } catch {
-    return []
-  }
+  return readDocument<GalleryRecord[]>('gallery', galleryDatabase, [])
 }
 
 const writeGallery = async (records: GalleryRecord[]) => {
-  await mkdir(path.dirname(galleryDatabase), { recursive: true })
-  await writeFile(galleryDatabase, `${JSON.stringify(records, null, 2)}\n`, 'utf8')
+  await writeDocument('gallery', records, galleryDatabase)
 }
 
 const readBody = (request: Connect.IncomingMessage) =>
@@ -73,9 +125,9 @@ const contentApi = (): Plugin => {
 
     try {
       if (request.method === 'GET') {
-        try {
-          sendJson(response, 200, JSON.parse(await readFile(contentDatabase, 'utf8')))
-        } catch {
+        const content = await readDocument<Record<string, unknown> | null>('website-content', contentDatabase, null)
+        if (content) sendJson(response, 200, content)
+        else {
           response.statusCode = 204
           response.end()
         }
@@ -98,8 +150,7 @@ const contentApi = (): Plugin => {
           return
         }
 
-        await mkdir(path.dirname(contentDatabase), { recursive: true })
-        await writeFile(contentDatabase, `${JSON.stringify(content, null, 2)}\n`, 'utf8')
+        await writeDocument('website-content', content, contentDatabase)
         sendJson(response, 200, content)
         return
       }
@@ -288,6 +339,9 @@ const databaseWatchGuard = (): Plugin => ({
   },
 })
 
+const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '')
+configureDatabase(process.env.DATABASE_URL || env.DATABASE_URL)
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -295,6 +349,7 @@ export default defineConfig({
     contentApi(),
     galleryApi(),
     messagesApi(),
+    databaseApi(),
     tailwindcss(),
     vue(),
     vueJsx(),
