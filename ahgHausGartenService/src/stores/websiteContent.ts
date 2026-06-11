@@ -371,6 +371,24 @@ export const useWebsiteContentStore = defineStore('websiteContent', () => {
     lastSaved.value = new Date()
   }
 
+  const loadGallery = async () => {
+    try {
+      const response = await fetch('/api/gallery')
+      if (!response.ok) return
+      const uploadedItems = (await response.json()) as ContentItem[]
+      const gallery = content.value.sections.find((section) => section.id === 'gallery')
+      if (!gallery) return
+
+      const uploadedPaths = new Set(uploadedItems.map((item) => String(item.imageUrl)))
+      gallery.items = [
+        ...gallery.items.filter((item) => !String(item.imageUrl).startsWith('/gallery/') || uploadedPaths.has(String(item.imageUrl))),
+        ...uploadedItems.filter((uploaded) => !gallery.items.some((item) => item.imageUrl === uploaded.imageUrl)),
+      ]
+    } catch {
+      // Static deployments can continue using default and locally stored gallery content.
+    }
+  }
+
   const reset = () => {
     content.value = cloneDefaults()
     save()
@@ -386,7 +404,8 @@ export const useWebsiteContentStore = defineStore('websiteContent', () => {
   const enabledSections = computed(() => content.value.sections.filter((section) => section.enabled))
 
   load()
+  void loadGallery()
   watch(content, save, { deep: true })
 
-  return { content, enabledSections, lastSaved, save, reset, moveSection }
+  return { content, enabledSections, lastSaved, save, reset, moveSection, loadGallery }
 })

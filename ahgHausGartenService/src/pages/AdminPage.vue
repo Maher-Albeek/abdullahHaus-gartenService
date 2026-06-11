@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useWebsiteContentStore, type ContentItem, type WebsiteSection } from '../stores/websiteContent'
+import { imgToAvif } from '../utils/imgToAvif'
 
 const store = useWebsiteContentStore()
 const activeId = ref(store.content.sections[0]?.id ?? 'hero')
@@ -13,6 +14,10 @@ const newService = ref<ContentItem | null>(null)
 const draggedItemIndex = ref<number | null>(null)
 const dragTargetIndex = ref<number | null>(null)
 const draggedGroupId = ref<string | null>(null)
+const galleryInput = ref<HTMLInputElement | null>(null)
+const galleryDragActive = ref(false)
+const galleryUploading = ref(false)
+const galleryError = ref('')
 const cloneItem = (item: ContentItem) => JSON.parse(JSON.stringify(item)) as ContentItem
 const serviceSection = () => store.content.sections.find((section) => section.id === 'services')
 const benefitsSection = () => store.content.sections.find((section) => section.id === 'benefits')
@@ -182,6 +187,76 @@ const addItem = (section: WebsiteSection, kind?: 'benefit' | 'concern') => {
 
 const addGroupItem = (section: WebsiteSection, groupId: string) => {
   addItem(section, groupId === 'concern' ? 'concern' : 'benefit')
+}
+
+const isImageFile = (file: File) =>
+  file.type.startsWith('image/') || /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|webp)$/i.test(file.name)
+
+const responseMessage = async (response: Response) => {
+  try {
+    const body = (await response.json()) as { message?: string }
+    return body.message || `Upload fehlgeschlagen (${response.status}).`
+  } catch {
+    return `Upload-API nicht erreichbar (${response.status}). Bitte die Website mit "npm run dev" oder "npm run preview" starten.`
+  }
+}
+
+const uploadGalleryFiles = async (files: FileList | File[]) => {
+  const images = Array.from(files).filter(isImageFile)
+  if (!images.length) {
+    galleryError.value = 'Bitte mindestens eine Bilddatei auswählen.'
+    return
+  }
+
+  galleryUploading.value = true
+  galleryError.value = ''
+  try {
+    const apiCheck = await fetch('/api/gallery')
+    if (!apiCheck.ok) throw new Error(await responseMessage(apiCheck))
+
+    for (const image of images) {
+      const [avif] = await imgToAvif(image, { quality: 75, maxDimension: 2400 })
+      if (!avif) continue
+      const response = await fetch('/api/gallery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'image/avif',
+          'X-File-Name': encodeURIComponent(avif.name),
+          'X-Image-Alt': encodeURIComponent(image.name.replace(/\.[^.]+$/, '')),
+        },
+        body: avif,
+      })
+      if (!response.ok) throw new Error(await responseMessage(response))
+
+      const record = (await response.json()) as ContentItem
+      const gallery = store.content.sections.find((section) => section.id === 'gallery')
+      if (gallery && !gallery.items.some((item) => item.imageUrl === record.imageUrl)) gallery.items.push(record)
+    }
+    showNotice(images.length === 1 ? 'Bild als AVIF gespeichert' : `${images.length} Bilder als AVIF gespeichert`)
+  } catch (error) {
+    galleryError.value = error instanceof Error ? error.message : 'Upload fehlgeschlagen.'
+  } finally {
+    galleryUploading.value = false
+    if (galleryInput.value) galleryInput.value.value = ''
+  }
+}
+
+const dropGalleryFiles = (event: DragEvent) => {
+  galleryDragActive.value = false
+  if (event.dataTransfer?.files) void uploadGalleryFiles(event.dataTransfer.files)
+}
+
+const removeGalleryItem = async (section: WebsiteSection, index: number) => {
+  const imageUrl = String(section.items[index]?.imageUrl ?? '')
+  if (imageUrl.startsWith('/gallery/')) {
+    const response = await fetch(`/api/gallery?path=${encodeURIComponent(imageUrl)}`, { method: 'DELETE' })
+    if (!response.ok) {
+      galleryError.value = await responseMessage(response)
+      return
+    }
+  }
+  removeItem(section, index)
+  showNotice('Galeriebild gelöscht')
 }
 
 const editableItem = (section: WebsiteSection, item: ContentItem, index: number) =>
@@ -430,12 +505,40 @@ const showNotice = (message: string) => {
             <div class="admin-card-header compact">
               <div><p>{{ group.description }}</p><h2>{{ group.title }}</h2></div>
               <button
+                v-if="activeSection.id !== 'gallery'"
                 type="button"
                 class="admin-button soft"
                 @click="activeSection.id === 'benefits' ? addGroupItem(activeSection, group.id) : addItem(activeSection)"
               >
                 <i class="fa-solid fa-plus"></i> Hinzufügen
               </button>
+            </div>
+            <div
+              v-if="activeSection.id === 'gallery'"
+              class="admin-gallery-upload"
+              :class="{ active: galleryDragActive, busy: galleryUploading }"
+              @dragenter.prevent="galleryDragActive = true"
+              @dragover.prevent="galleryDragActive = true"
+              @dragleave.prevent="galleryDragActive = false"
+              @drop.prevent="dropGalleryFiles"
+            >
+              <i :class="`fa-solid fa-${galleryUploading ? 'spinner fa-spin' : 'cloud-arrow-up'}`"></i>
+              <strong>{{ galleryUploading ? 'Bilder werden in AVIF konvertiert und gespeichert...' : 'Bilder hier ablegen' }}</strong>
+              <span>Bilddateien werden automatisch in AVIF konvertiert.</span>
+              <label class="admin-button soft admin-gallery-picker" :class="{ disabled: galleryUploading }">
+                <input
+                  ref="galleryInput"
+                  class="admin-gallery-file-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  :disabled="galleryUploading"
+                  @change="uploadGalleryFiles(($event.target as HTMLInputElement).files ?? [])"
+                />
+                <i class="fa-solid fa-images"></i>
+                Bilder auswählen
+              </label>
+              <small v-if="galleryError" class="admin-gallery-error">{{ galleryError }}</small>
             </div>
             <div v-if="activeSection.id === 'benefits'" class="admin-form-grid admin-group-content">
               <label
@@ -485,6 +588,12 @@ const showNotice = (message: string) => {
                   <i class="fa-solid fa-chevron-down"></i>
                 </summary>
                 <div class="admin-item-body">
+                  <img
+                    v-if="activeSection.id === 'gallery'"
+                    class="admin-gallery-thumbnail"
+                    :src="String(item.imageUrl)"
+                    :alt="String(item.alt ?? '')"
+                  />
                   <template v-for="(value, key) in editableItem(activeSection, item, index)" :key="key">
                     <template v-if="activeSection.id === 'benefits' && key === 'kind'"></template>
                     <div v-else-if="['services', 'benefits'].includes(activeSection.id) && key === 'icon'" class="admin-icon-field wide">
@@ -570,7 +679,7 @@ const showNotice = (message: string) => {
                     <button v-else type="button" class="admin-button primary" @click="saveBenefit(index)"><i class="fa-solid fa-check"></i> Speichern</button>
                     <button type="button" class="admin-delete" @click="removeItem(activeSection, index)"><i class="fa-solid fa-trash"></i> Eintrag löschen</button>
                   </div>
-                  <button v-else type="button" class="admin-delete" @click="removeItem(activeSection, index)"><i class="fa-solid fa-trash"></i> Eintrag löschen</button>
+                  <button v-else type="button" class="admin-delete" @click="activeSection.id === 'gallery' ? removeGalleryItem(activeSection, index) : removeItem(activeSection, index)"><i class="fa-solid fa-trash"></i> Eintrag löschen</button>
                 </div>
               </details>
             </div>

@@ -193,4 +193,22 @@ describe('AdminPage service modal', () => {
     ])
     expect(section.items.filter((item) => item.kind === 'concern').map((item) => item.question)).toEqual(originalConcerns)
   })
+
+  it('uses a native file label to open the gallery image picker', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(AdminPage, { global: { plugins: [pinia] } })
+
+    const galleryNav = wrapper
+      .findAll('.admin-section-nav button')
+      .find((button) => button.text().includes('Galerie'))!
+    await galleryNav.trigger('click')
+
+    const picker = wrapper.get('label.admin-gallery-picker')
+    const input = picker.get<HTMLInputElement>('input[type="file"]')
+    expect(picker.text()).toContain('Bilder auswählen')
+    expect(input.attributes('hidden')).toBeUndefined()
+    expect(input.attributes('accept')).toBe('image/*')
+    expect(input.attributes('multiple')).toBeDefined()
+  })
 })
