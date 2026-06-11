@@ -1,4 +1,4 @@
-import { fileURLToPath, URL } from 'node:url'
+import { URL } from 'node:url'
 import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto'
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
@@ -42,15 +42,16 @@ type MessageRecord = {
   read: boolean
 }
 
-const galleryDirectory = fileURLToPath(new URL('./public/gallery', import.meta.url))
-const galleryDatabase = fileURLToPath(new URL('./database/gallery.json', import.meta.url))
-const contentDatabase = fileURLToPath(new URL('./database/website-content.json', import.meta.url))
-const messagesDatabase = fileURLToPath(new URL('./database/messages.json', import.meta.url))
-const usersDatabase = fileURLToPath(new URL('./database/users.json', import.meta.url))
+const galleryDirectory = path.resolve('public/gallery')
+const galleryDatabase = path.resolve('database/gallery.json')
+const contentDatabase = path.resolve('database/website-content.json')
+const messagesDatabase = path.resolve('database/messages.json')
+const usersDatabase = path.resolve('database/users.json')
 const databaseFiles = [galleryDatabase, contentDatabase, messagesDatabase, usersDatabase]
 const sessions = new Map<string, { user: { id: string; email: string; displayName: string; role: string }; expiresAt: number }>()
 const sessionLifetime = 60 * 60 * 8
 const scryptAsync = promisify(scrypt)
+const apiMiddlewares: Connect.NextHandleFunction[] = []
 
 const databaseApi = (): Plugin => {
   const middleware: Connect.NextHandleFunction = async (request, response, next) => {
@@ -80,6 +81,7 @@ const databaseApi = (): Plugin => {
       })
     }
   }
+  apiMiddlewares.push(middleware)
 
   return {
     name: 'database-api',
@@ -128,7 +130,7 @@ const parseCookies = (request: Connect.IncomingMessage) =>
       .split(';')
       .map((cookie) => cookie.trim().split('='))
       .filter(([key, value]) => key && value)
-      .map(([key, value]) => [key, decodeURIComponent(value)]),
+      .map(([key, value]) => [key, decodeURIComponent(value!)]),
   )
 
 const currentSession = (request: Connect.IncomingMessage) => {
@@ -319,6 +321,7 @@ const authApi = (
       sendJson(response, 500, { message: error instanceof Error ? error.message : 'Authentication request failed.' })
     }
   }
+  apiMiddlewares.push(middleware)
 
   return {
     name: 'auth-api',
@@ -383,6 +386,7 @@ const usersApi = (): Plugin => {
       sendJson(response, 400, { message: error instanceof Error ? error.message : 'User request failed.' })
     }
   }
+  apiMiddlewares.push(middleware)
   return {
     name: 'users-api',
     configureServer(server) { server.middlewares.use(middleware) },
@@ -432,6 +436,7 @@ const contentApi = (): Plugin => {
       sendJson(response, 500, { message: error instanceof Error ? error.message : 'Content request failed.' })
     }
   }
+  apiMiddlewares.push(middleware)
 
   return {
     name: 'content-api',
@@ -513,6 +518,7 @@ const galleryApi = (): Plugin => {
       sendJson(response, 500, { message: error instanceof Error ? error.message : 'Gallery request failed.' })
     }
   }
+  apiMiddlewares.push(middleware)
 
   return {
     name: 'gallery-api',
@@ -597,6 +603,7 @@ const messagesApi = (): Plugin => {
       sendJson(response, 500, { message: error instanceof Error ? error.message : 'Message request failed.' })
     }
   }
+  apiMiddlewares.push(middleware)
 
   return {
     name: 'messages-api',
@@ -618,6 +625,33 @@ const databaseWatchGuard = (): Plugin => ({
 
 const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '')
 configureDatabase(process.env.DATABASE_URL || env.DATABASE_URL)
+
+export const handleApiRequest = async (request: Connect.IncomingMessage, response: ServerResponse) => {
+  const run = async (index: number): Promise<void> => {
+    const middleware = apiMiddlewares[index]
+    if (!middleware) {
+      sendJson(response, 404, { message: 'API route not found.' })
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      let continued = false
+      const next: Connect.NextFunction = (error?: unknown) => {
+        continued = true
+        if (error) reject(error)
+        else resolve(run(index + 1))
+      }
+
+      Promise.resolve(middleware(request, response, next))
+        .then(() => {
+          if (!continued) resolve()
+        })
+        .catch(reject)
+    })
+  }
+
+  await run(0)
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -643,7 +677,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': path.resolve('src')
     },
   },
 })

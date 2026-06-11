@@ -40,6 +40,10 @@ The database file is initialized from the default content on the first successfu
 development or preview server request. Admin changes are persisted only when
 `In Datenbank speichern` is selected.
 
+Production deployments on Vercel serve the same API routes through the catch-all
+serverless function in `api/[...path].ts`. Configure `DATABASE_URL` in Vercel so
+data persists between function invocations.
+
 ### Type-Check, Compile and Minify for Production
 
 ```sh
