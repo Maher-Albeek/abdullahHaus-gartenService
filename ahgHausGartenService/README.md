@@ -40,9 +40,14 @@ The database file is initialized from the default content on the first successfu
 development or preview server request. Admin changes are persisted only when
 `In Datenbank speichern` is selected.
 
-Production deployments on Vercel rewrite API routes to the serverless function
-in `api/index.ts`. Configure `DATABASE_URL` in Vercel so
-data persists between function invocations.
+Production deployments on Netlify rewrite API routes to the serverless function
+in `netlify/functions/api.ts`. Configure the variables from `.env.example` in
+Netlify under **Site configuration > Environment variables**. `DATABASE_URL`
+must point to a remotely accessible MySQL database so data persists between
+function invocations.
+
+Deploys use the build and redirect settings in `netlify.toml`. Set `APP_URL` to
+the production Netlify or custom-domain URL so password-reset links are correct.
 
 ### Type-Check, Compile and Minify for Production
 

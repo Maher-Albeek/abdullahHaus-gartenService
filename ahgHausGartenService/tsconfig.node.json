@@ -7,7 +7,7 @@
     "cypress.config.*",
     "playwright.config.*",
     "eslint.config.*",
-    "api/**/*.ts",
+    "netlify/functions/**/*.ts",
     "server/**/*.ts"
   ],
   "compilerOptions": {
