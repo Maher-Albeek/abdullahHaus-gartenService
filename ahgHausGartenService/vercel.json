@@ -1,8 +1,28 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api?__path=:path*"
+      "source": "/api/auth/:path*",
+      "destination": "/api?__path=auth/:path*"
+    },
+    {
+      "source": "/api/content",
+      "destination": "/api?__path=content"
+    },
+    {
+      "source": "/api/gallery",
+      "destination": "/api?__path=gallery"
+    },
+    {
+      "source": "/api/messages",
+      "destination": "/api?__path=messages"
+    },
+    {
+      "source": "/api/users",
+      "destination": "/api?__path=users"
+    },
+    {
+      "source": "/api/database",
+      "destination": "/api?__path=database"
     },
     {
       "source": "/((?!api(?:/|$)).*)",
