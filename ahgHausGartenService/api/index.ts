@@ -10,7 +10,7 @@ const restoreApiPath = (request: IncomingMessage) => {
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   try {
     restoreApiPath(request)
-    const { handleApiRequest } = await import('../vite.config')
+    const { handleApiRequest } = await import('../vite.config.js')
     await handleApiRequest(request, response)
   } catch (error) {
     console.error('API function failed:', error)
