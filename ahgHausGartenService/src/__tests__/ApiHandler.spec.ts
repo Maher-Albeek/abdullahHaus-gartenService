@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import handler from '../../api/[...path]'
+import handler from '../../api'
 
 const servers: ReturnType<typeof createServer>[] = []
 
@@ -19,7 +19,7 @@ describe('production API handler', () => {
     const address = server.address()
     if (!address || typeof address === 'string') throw new Error('Test server did not start.')
 
-    const response = await fetch(`http://127.0.0.1:${address.port}/api/content`)
+    const response = await fetch(`http://127.0.0.1:${address.port}/api?__path=content`)
 
     expect(response.status).not.toBe(404)
     expect(response.headers.get('content-type')).toContain('application/json')
@@ -32,7 +32,7 @@ describe('production API handler', () => {
     const address = server.address()
     if (!address || typeof address === 'string') throw new Error('Test server did not start.')
 
-    const response = await fetch(`http://127.0.0.1:${address.port}/api/unknown`)
+    const response = await fetch(`http://127.0.0.1:${address.port}/api?__path=unknown`)
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ message: 'API route not found.' })
