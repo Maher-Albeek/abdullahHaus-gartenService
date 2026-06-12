@@ -1,7 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
-import { handleApiRequest } from '../vite.config'
-
 const restoreApiPath = (request: IncomingMessage) => {
   const url = new URL(request.url ?? '/api', 'http://localhost')
   const path = url.searchParams.get('__path')
@@ -12,8 +10,10 @@ const restoreApiPath = (request: IncomingMessage) => {
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   try {
     restoreApiPath(request)
+    const { handleApiRequest } = await import('../vite.config')
     await handleApiRequest(request, response)
   } catch (error) {
+    console.error('API function failed:', error)
     response.statusCode = 500
     response.setHeader('Content-Type', 'application/json')
     response.end(JSON.stringify({
