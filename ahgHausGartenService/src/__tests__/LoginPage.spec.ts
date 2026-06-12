@@ -39,4 +39,16 @@ describe('LoginPage', () => {
 
     expect(wrapper.get('[role="alert"]').text()).toBe('Invalid email or password.')
   })
+
+  it('toggles password visibility', async () => {
+    const wrapper = mount(LoginPage)
+    const toggle = wrapper.get('[aria-label="Passwort anzeigen"]')
+
+    expect(wrapper.get('input[autocomplete="current-password"]').attributes('type')).toBe('password')
+
+    await toggle.trigger('click')
+
+    expect(wrapper.get('input[autocomplete="current-password"]').attributes('type')).toBe('text')
+    expect(wrapper.get('[aria-label="Passwort verbergen"]').attributes('aria-pressed')).toBe('true')
+  })
 })

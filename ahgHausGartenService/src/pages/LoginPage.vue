@@ -7,6 +7,7 @@ const route = useRoute()
 const router = useRouter()
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
 const resetSent = ref('')
@@ -54,7 +55,21 @@ const forgotPassword = async () => {
       </div>
       <form @submit.prevent="login">
         <label><span>E-Mail-Adresse</span><input v-model.trim="email" type="email" autocomplete="username" required /></label>
-        <label><span>Passwort</span><input v-model="password" type="password" autocomplete="current-password" required /></label>
+        <label>
+          <span>Passwort</span>
+          <div class="login-password-field">
+            <input v-model="password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" required />
+            <button
+              class="login-password-toggle"
+              type="button"
+              :aria-label="showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'"
+              :aria-pressed="showPassword"
+              @click="showPassword = !showPassword"
+            >
+              <i :class="`fa-solid fa-eye${showPassword ? '-slash' : ''}`" aria-hidden="true"></i>
+            </button>
+          </div>
+        </label>
         <p v-if="error" class="login-error" role="alert">{{ error }}</p>
         <button type="submit" :disabled="loading">
           <i :class="`fa-solid fa-${loading ? 'spinner fa-spin' : 'right-to-bracket'}`"></i>
