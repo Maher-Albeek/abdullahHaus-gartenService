@@ -85,7 +85,8 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
   try {
     const request = createRequest(event)
     const { response, completed } = createResponse()
-    const { handleApiRequest } = await import('../../vite.config')
+    const { configureApi, handleApiRequest } = await import('../../server/api')
+    configureApi()
     await handleApiRequest(request, response)
     return await completed
   } catch (error) {

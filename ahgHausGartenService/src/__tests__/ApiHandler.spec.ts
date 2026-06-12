@@ -14,8 +14,10 @@ describe('production API handler', () => {
   it('dispatches API routes without the Vite development server', async () => {
     const response = await handler(event('content'))
 
-    expect(response.statusCode).not.toBe(404)
-    expect(response.headers['content-type']).toContain('application/json')
+    expect([200, 204]).toContain(response.statusCode)
+    if (response.statusCode === 200) {
+      expect(response.headers['content-type']).toContain('application/json')
+    }
   })
 
   it('returns JSON for unknown API routes', async () => {
