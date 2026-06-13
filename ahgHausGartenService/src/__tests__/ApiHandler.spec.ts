@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { handler } from '../../netlify/functions/api'
+import { isStrongPassword } from '../../server/api'
 
 const event = (path: string, method = 'GET', body: string | null = null) => ({
   body,
@@ -11,6 +12,14 @@ const event = (path: string, method = 'GET', body: string | null = null) => ({
 })
 
 describe('production API handler', () => {
+  it('uses the strong password rules for every password-writing endpoint', () => {
+    expect(isStrongPassword('StrongPassword1')).toBe(true)
+    expect(isStrongPassword('shortA1')).toBe(false)
+    expect(isStrongPassword('lowercasepass1')).toBe(false)
+    expect(isStrongPassword('NoNumberPassword')).toBe(false)
+    expect(isStrongPassword('Strong Password1')).toBe(false)
+  })
+
   it('dispatches API routes without the Vite development server', async () => {
     const response = await handler(event('content'))
 

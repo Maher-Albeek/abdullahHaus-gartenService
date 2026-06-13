@@ -409,7 +409,7 @@ export const saveUser = async (user: UserRecord, fallbackFile: string) => {
 
 export const updateUser = async (
   id: string,
-  values: { displayName?: string; role?: string; isActive?: boolean; passwordHash?: string },
+  values: { email?: string; displayName?: string; role?: string; isActive?: boolean; passwordHash?: string },
   fallbackFile: string,
 ) => {
   if (!pool) {
@@ -423,6 +423,7 @@ export const updateUser = async (
   await ensureSchema()
   const fields: string[] = []
   const params: unknown[] = []
+  if (values.email !== undefined) { fields.push('email = ?'); params.push(values.email) }
   if (values.displayName !== undefined) { fields.push('display_name = ?'); params.push(values.displayName) }
   if (values.role !== undefined) { fields.push('role = ?'); params.push(values.role) }
   if (values.isActive !== undefined) { fields.push('is_active = ?'); params.push(values.isActive) }

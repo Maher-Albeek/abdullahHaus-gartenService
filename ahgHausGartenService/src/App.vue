@@ -11,7 +11,12 @@ const contentStore = useWebsiteContentStore()
 <template>
   <RouterView />
   <nav v-if="!isAdmin" class="mobile-contact-bar" aria-label="Schnellkontakt">
-    <a class="mobile-contact-action mobile-contact-action--call" :href="`tel:+${contentStore.content.contact.whatsapp}`">
+    <a
+      class="mobile-contact-action mobile-contact-action--call"
+      :href="`tel:+${contentStore.content.contact.whatsapp}`"
+      aria-label="Anrufen"
+      title="Anrufen"
+    >
       <i class="fa-solid fa-phone" aria-hidden="true"></i>
       <span>Anrufen</span>
     </a>
@@ -20,6 +25,8 @@ const contentStore = useWebsiteContentStore()
       :href="`https://wa.me/${contentStore.content.contact.whatsapp}`"
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="WhatsApp öffnen"
+      title="WhatsApp"
     >
       <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
       <span>WhatsApp</span>

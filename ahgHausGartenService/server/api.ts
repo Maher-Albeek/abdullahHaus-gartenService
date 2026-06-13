@@ -197,7 +197,7 @@ const verifyPassword = async (password: string, storedHash: string) => {
   return expected.length === actual.length && timingSafeEqual(expected, actual)
 }
 
-const isStrongPassword = (password: string) =>
+export const isStrongPassword = (password: string) =>
   password.length >= 12 &&
   /[A-Z]/.test(password) &&
   /\d/.test(password) &&
@@ -283,8 +283,10 @@ const authApi = (
           sendJson(response, 400, { message: 'Current password is incorrect.' })
           return
         }
-        if (newPassword.length < 8) {
-          sendJson(response, 400, { message: 'New password must contain at least 8 characters.' })
+        if (!isStrongPassword(newPassword)) {
+          sendJson(response, 400, {
+            message: 'Password must contain at least 12 characters, one uppercase letter, one number, and only allowed characters.',
+          })
           return
         }
         await updateUser(user.id, { passwordHash: await hashPassword(newPassword) }, usersDatabase)
@@ -352,9 +354,40 @@ const authApi = (
 const usersApi = (): Plugin => {
   const middleware: Connect.NextHandleFunction = async (request, response, next) => {
     if (!request.url?.startsWith('/api/users')) return next()
-    if (!requirePermission(request, response, 'users')) return
     try {
-      const session = currentSession(request)!
+      const session = currentSession(request)
+      if (!session) {
+        sendJson(response, 401, { message: 'Authentication required.' })
+        return
+      }
+      const pathname = new URL(request.url, 'http://localhost').pathname
+      if (pathname === '/api/users/self' && request.method === 'PATCH') {
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as { email?: unknown; displayName?: unknown }
+        const email = String(body.email ?? '').trim().toLowerCase()
+        const displayName = String(body.displayName ?? '').trim()
+        if (!email.includes('@') || !displayName) {
+          sendJson(response, 400, { message: 'Valid email and display name are required.' })
+          return
+        }
+        const user = await findUserByEmail(session.user.email, usersDatabase)
+        if (!user) {
+          sendJson(response, 404, { message: 'User not found.' })
+          return
+        }
+        await updateUser(user.id, { email, displayName }, usersDatabase)
+        const publicUser = { id: user.id, email, displayName, role: user.role }
+        const token = signSession({ user: publicUser, expiresAt: Date.now() + sessionLifetime * 1000 })
+        response.setHeader(
+          'Set-Cookie',
+          `ahg_session=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${sessionLifetime}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+        )
+        sendJson(response, 200, { user: publicUser })
+        return
+      }
+      if (!roleAllows(session.user.role, 'users')) {
+        sendJson(response, 403, { message: 'You do not have permission for this action.' })
+        return
+      }
       if (request.method === 'GET') {
         sendJson(response, 200, await listUsers(usersDatabase))
         return
@@ -370,8 +403,10 @@ const usersApi = (): Plugin => {
       if (request.method === 'POST') {
         const email = String(body.email ?? '').trim().toLowerCase()
         const password = String(body.password ?? '')
-        if (!email.includes('@') || password.length < 8) {
-          sendJson(response, 400, { message: 'Valid email and a password with at least 8 characters are required.' })
+        if (!email.includes('@') || !isStrongPassword(password)) {
+          sendJson(response, 400, {
+            message: 'Valid email and a password with at least 12 characters, one uppercase letter, one number, and only allowed characters are required.',
+          })
           return
         }
         await saveUser({
@@ -439,6 +474,16 @@ const contentApi = (): Plugin => {
         if (!content.brand || !content.contact || !Array.isArray(content.sections)) {
           sendJson(response, 400, { message: 'Invalid website content.' })
           return
+        }
+        const session = currentSession(request)!
+        if (session.user.role === 'editor') {
+          const savedContent = await readWebsiteContent(contentDatabase)
+          const savedOrder = savedContent?.sections.map((section) => section.id) ?? []
+          const incomingOrder = content.sections.map((section) => String((section as { id?: unknown }).id ?? ''))
+          if (savedOrder.length && JSON.stringify(savedOrder) !== JSON.stringify(incomingOrder)) {
+            sendJson(response, 403, { message: 'Editors cannot change section order.' })
+            return
+          }
         }
 
         await writeWebsiteContent(content as Parameters<typeof writeWebsiteContent>[0], contentDatabase)

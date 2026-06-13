@@ -18,6 +18,51 @@ describe('AdminPage service modal', () => {
     expect(wrapper.find('.admin-order').exists()).toBe(true)
   })
 
+  it('restricts editor imports, exports, and ordering controls', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+      if (url === '/api/auth/session') {
+        return new Response(JSON.stringify({ user: { id: 'editor-1', email: 'editor@example.com', displayName: 'Editor', role: 'editor' } }))
+      }
+      if (url === '/api/content' && options?.method === 'PUT') {
+        return new Response(JSON.stringify({ success: true }))
+      }
+      return new Response(null, { status: 204 })
+    })
+    const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+
+    expect(wrapper.find('.admin-order').exists()).toBe(false)
+    expect(wrapper.find('.admin-notification-button').exists()).toBe(false)
+    expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Import'))).toBe(false)
+    expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Export'))).toBe(false)
+    expect(wrapper.text()).not.toContain('Benutzer hinzufügen')
+
+    const servicesNav = wrapper.findAll('.admin-section-nav button').find((button) => button.text().includes('Leistungen'))!
+    await servicesNav.trigger('click')
+    expect(wrapper.find('.admin-drag-handle').exists()).toBe(false)
+    expect(wrapper.find('.admin-mobile-sort').exists()).toBe(false)
+
+    wrapper.unmount()
+    fetchMock.mockRestore()
+  })
+
+  it('allows only owners to see the import button', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      if (url === '/api/auth/session') {
+        return new Response(JSON.stringify({ user: { id: 'owner-1', email: 'owner@example.com', displayName: 'Owner', role: 'owner' } }))
+      }
+      if (url === '/api/users') return new Response(JSON.stringify([]))
+      return new Response(null, { status: 204 })
+    })
+    const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+
+    expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Import'))).toBe(true)
+
+    wrapper.unmount()
+    fetchMock.mockRestore()
+  })
+
   it('restores the active admin panel after a reload', async () => {
     const firstWrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
     const servicesNav = firstWrapper

@@ -24,6 +24,9 @@ const currentRole = ref('boss')
 const canManageUsers = computed(() => ['boss', 'owner'].includes(currentRole.value))
 const canAccessMessages = computed(() => ['boss', 'owner'].includes(currentRole.value))
 const canAccessDatabase = computed(() => currentRole.value === 'boss')
+const canImportContent = computed(() => currentRole.value === 'owner')
+const canExportContent = computed(() => ['boss', 'owner'].includes(currentRole.value))
+const canReorderContent = computed(() => currentRole.value !== 'editor')
 const storedActiveId = window.localStorage.getItem('ahg-admin-active-panel')
 const validActiveIds = ['general', 'messages', 'database', ...store.content.sections.map((section) => section.id)]
 const activeId = ref(storedActiveId && validActiveIds.includes(storedActiveId) ? storedActiveId : 'general')
@@ -524,6 +527,7 @@ const removeItem = (section: WebsiteSection, index: number) => {
 }
 
 const startItemDrag = (index: number, groupId: string, event: DragEvent) => {
+  if (!canReorderContent.value) return
   draggedItemIndex.value = index
   dragTargetIndex.value = index
   draggedGroupId.value = groupId
@@ -534,6 +538,7 @@ const startItemDrag = (index: number, groupId: string, event: DragEvent) => {
 }
 
 const reorderItem = (section: WebsiteSection, sourceIndex: number, targetIndex: number) => {
+  if (!canReorderContent.value) return
   if (sourceIndex === targetIndex) return
   const drafts = section.id === 'services' ? serviceDrafts.value : benefitDrafts.value
   const [item] = section.items.splice(sourceIndex, 1)
@@ -545,6 +550,7 @@ const reorderItem = (section: WebsiteSection, sourceIndex: number, targetIndex: 
 }
 
 const dropItem = (targetIndex: number, groupId: string) => {
+  if (!canReorderContent.value) return
   const sourceIndex = draggedItemIndex.value
   if (sourceIndex === null || draggedGroupId.value !== groupId) {
     endItemDrag()
@@ -556,6 +562,7 @@ const dropItem = (targetIndex: number, groupId: string) => {
 }
 
 const moveItem = (sourceIndex: number, targetIndex: number | undefined) => {
+  if (!canReorderContent.value) return
   if (targetIndex === undefined) return
   reorderItem(activeSection.value, sourceIndex, targetIndex)
 }
@@ -590,6 +597,7 @@ const createService = () => {
 }
 
 const exportContent = () => {
+  if (!canExportContent.value) return
   const blob = new Blob([JSON.stringify(store.content, null, 2)], { type: 'application/json' })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
@@ -600,6 +608,7 @@ const exportContent = () => {
 }
 
 const importContent = async (event: Event) => {
+  if (!canImportContent.value) return
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   store.content = JSON.parse(await file.text())
@@ -718,15 +727,15 @@ onMounted(loadSessionRole)
           <h1>{{ isGeneral ? 'General' : isMessages ? 'Nachrichten' : isDatabase ? 'Datenbank' : 'Inhalte & Bereiche' }}</h1>
         </div>
         <div v-if="!isDatabase" class="admin-actions">
-          <button type="button" class="admin-notification-button" aria-label="Nachrichten öffnen" @click="openMessages">
+          <button v-if="canAccessMessages" type="button" class="admin-notification-button" aria-label="Nachrichten öffnen" @click="openMessages">
             <i class="fa-solid fa-bell"></i>
             <b v-if="unreadMessageCount">{{ unreadMessageCount }}</b>
           </button>
-          <button type="button" class="admin-button ghost" @click="importInput?.click()">
+          <button v-if="canImportContent" type="button" class="admin-button ghost" @click="importInput?.click()">
             <i class="fa-solid fa-file-import"></i> Import
           </button>
-          <input ref="importInput" hidden type="file" accept="application/json" @change="importContent" />
-          <button type="button" class="admin-button ghost" @click="exportContent">
+          <input v-if="canImportContent" ref="importInput" hidden type="file" accept="application/json" @change="importContent" />
+          <button v-if="canExportContent" type="button" class="admin-button ghost" @click="exportContent">
             <i class="fa-solid fa-download"></i> Export
           </button>
           <button type="button" class="admin-button primary" :disabled="store.saving" @click="saveContent">
@@ -873,12 +882,12 @@ onMounted(loadSessionRole)
                 :key="index"
                 :open="activeSection.id !== 'services' && groupIndex === 0"
                 :class="{ 'admin-item-drag-target': dragTargetIndex === index && draggedItemIndex !== index && draggedGroupId === group.id }"
-                @dragover.prevent="draggedGroupId === group.id && (dragTargetIndex = index)"
-                @drop.prevent="dropItem(index, group.id)"
+                @dragover.prevent="canReorderContent && draggedGroupId === group.id && (dragTargetIndex = index)"
+                @drop.prevent="canReorderContent && dropItem(index, group.id)"
               >
                 <summary>
                   <span
-                    v-if="['services', 'benefits'].includes(activeSection.id)"
+                    v-if="canReorderContent && ['services', 'benefits'].includes(activeSection.id)"
                     class="admin-drag-handle"
                     draggable="true"
                     :aria-label="`${sortLabel(group.id)} verschieben`"
@@ -961,7 +970,7 @@ onMounted(loadSessionRole)
                     </label>
                   </template>
                   <div v-if="['services', 'benefits'].includes(activeSection.id)" class="admin-item-actions">
-                    <div class="admin-mobile-sort">
+                    <div v-if="canReorderContent" class="admin-mobile-sort">
                       <button
                         type="button"
                         :disabled="groupIndex === 0"
@@ -1064,7 +1073,7 @@ onMounted(loadSessionRole)
           <button v-if="isGeneral" type="button" class="admin-reset" @click="resetContent"><i class="fa-solid fa-arrow-rotate-left"></i> Auf Standardinhalte zurücksetzen</button>
         </div>
 
-        <aside v-if="isGeneral" class="admin-order-sidebar">
+        <aside v-if="isGeneral && canReorderContent" class="admin-order-sidebar">
           <div class="admin-order">
             <h3>Reihenfolge</h3>
             <div v-for="(section, index) in store.content.sections" :key="section.id">

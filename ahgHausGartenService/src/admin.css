@@ -164,6 +164,14 @@
 .users-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .users-form { display: grid; gap: 10px; padding: 18px; border: 1px solid #e2e8e0; border-radius: 12px; }
 .users-form h3 { margin: 0 0 5px; font-size: 14px; }
+.users-password-requirements {
+  display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: #8a4b4b; font-size: 10px;
+}
+.users-password-requirements li, .users-password-match {
+  display: flex; align-items: center; gap: 7px; transition: color .2s ease, transform .2s ease;
+}
+.users-password-requirements li.valid, .users-password-match.valid { color: #287238; transform: translateX(2px); }
+.users-password-match { margin: 0; color: #a12626; font-size: 10px; }
 .users-form input, .users-form select, .users-list select {
   width: 100%; border: 1px solid #d5ddd2; border-radius: 8px; padding: 10px; background: #fff; font: inherit;
 }
