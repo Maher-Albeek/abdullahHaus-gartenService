@@ -45,5 +45,9 @@
 .login-card button:disabled { opacity: .65; cursor: wait; }
 .login-card .login-secondary { background: transparent; color: #527756; padding: 4px; }
 .login-error { margin: 0; padding: 11px 12px; border-radius: 8px; background: #fff0f0; color: #a12626; font-size: 13px; }
+.password-requirements { display: grid; gap: 8px; margin: -6px 0 0; padding: 0; list-style: none; color: #8a4b4b; font-size: 13px; }
+.password-requirements li, .password-match { display: flex; gap: 8px; align-items: center; transition: color .2s ease, transform .2s ease; }
+.password-requirements li.valid, .password-match.valid { color: #287238; transform: translateX(2px); }
+.password-match { margin: -6px 0 0; color: #a12626; font-size: 13px; }
 .login-back { display: inline-flex; gap: 8px; align-items: center; margin-top: 26px; color: #527756; font-size: 13px; text-decoration: none; }
 @media (max-width: 520px) { .login-card { padding: 28px 22px; } }

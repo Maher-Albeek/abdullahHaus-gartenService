@@ -197,6 +197,12 @@ const verifyPassword = async (password: string, storedHash: string) => {
   return expected.length === actual.length && timingSafeEqual(expected, actual)
 }
 
+const isStrongPassword = (password: string) =>
+  password.length >= 12 &&
+  /[A-Z]/.test(password) &&
+  /\d/.test(password) &&
+  /^[A-Za-z0-9*@_.#$%]+$/.test(password)
+
 const authApi = (
   adminEmail: string | undefined,
   adminPassword: string | undefined,
@@ -314,8 +320,10 @@ const authApi = (
         const body = JSON.parse((await readBody(request)).toString('utf8')) as { token?: unknown; password?: unknown }
         const token = String(body.token ?? '')
         const password = String(body.password ?? '')
-        if (password.length < 8) {
-          sendJson(response, 400, { message: 'Password must contain at least 8 characters.' })
+        if (!isStrongPassword(password)) {
+          sendJson(response, 400, {
+            message: 'Password must contain at least 12 characters, one uppercase letter, one number, and only allowed characters.',
+          })
           return
         }
         const updated = await consumePasswordResetToken(createHash('sha256').update(token).digest('hex'), await hashPassword(password))

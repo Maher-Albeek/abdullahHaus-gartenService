@@ -350,7 +350,13 @@ export const syncConfiguredUser = async (user: UserRecord, fallbackFile: string)
   if (!pool) {
     const users = await readDocument<UserRecord[]>('users', fallbackFile, [])
     const existingIndex = users.findIndex((entry) => entry.email.toLowerCase() === user.email.toLowerCase())
-    if (existingIndex >= 0) users[existingIndex] = { ...users[existingIndex], ...user, id: users[existingIndex]!.id }
+    if (existingIndex >= 0) {
+      users[existingIndex] = {
+        ...user,
+        id: users[existingIndex]!.id,
+        passwordHash: users[existingIndex]!.passwordHash,
+      }
+    }
     else users.push(user)
     await writeDocument('users', users, fallbackFile)
     return
@@ -360,8 +366,7 @@ export const syncConfiguredUser = async (user: UserRecord, fallbackFile: string)
   await pool.query(
     `INSERT INTO users (email, password_hash, display_name, role, is_active)
      VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), display_name = VALUES(display_name),
-     role = VALUES(role), is_active = VALUES(is_active)`,
+     ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), role = VALUES(role), is_active = VALUES(is_active)`,
     [user.email, user.passwordHash, user.displayName, user.role, user.isActive],
   )
 }
