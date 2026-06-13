@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useWebsiteContentStore, type ContentItem, type WebsiteSection } from '../stores/websiteContent'
 import DatabasePanel from '../component/DatabasePanel.vue'
 import UsersPanel from '../component/UsersPanel.vue'
+import CustomSectionBuilder from '../component/CustomSectionBuilder.vue'
 import { imgToAvif } from '../utils/imgToAvif'
 import { createMessagesPdfBlob } from '../utils/messagesToPdf'
 import { readApiResponse } from '../utils/apiResponse'
@@ -35,7 +36,7 @@ const canAccessMessages = computed(() => ['boss', 'owner'].includes(currentRole.
 const canAccessDatabase = computed(() => currentRole.value === 'boss')
 const canImportContent = computed(() => currentRole.value === 'boss')
 const canExportContent = computed(() => ['boss', 'owner'].includes(currentRole.value))
-const canReorderContent = computed(() => currentRole.value !== 'editor')
+const canReorderContent = computed(() => ['boss', 'owner', 'editor'].includes(currentRole.value))
 const storedActiveId = window.localStorage.getItem('ahg-admin-active-panel')
 const validActiveIds = ['general', 'messages', 'database', ...store.content.sections.map((section) => section.id)]
 const activeId = ref(storedActiveId && validActiveIds.includes(storedActiveId) ? storedActiveId : 'general')
@@ -616,6 +617,37 @@ const createService = () => {
   showNotice('Dienstleistung hinzugefügt')
 }
 
+const createCustomSection = () => {
+  const id = `custom-${Date.now()}`
+  store.content.sections.push({
+    id,
+    label: 'Neuer Bereich',
+    description: 'Frei gestalteter Website-Bereich',
+    enabled: true,
+    content: {
+      custom: true,
+      kicker: 'Neuer Bereich',
+      title: 'Ihre Überschrift',
+      description: 'Beschreiben Sie diesen Bereich.',
+      backgroundColor: '#f5f7f3',
+      textColor: '#20251e',
+      imageUrl: '',
+      minHeight: 560,
+    },
+    items: [],
+  })
+  activeId.value = id
+  showNotice('Neuer Bereich erstellt')
+}
+
+const removeCustomSection = () => {
+  const index = store.content.sections.findIndex((section) => section.id === activeSection.value.id)
+  if (index < 0 || activeSection.value.content.custom !== true) return
+  store.content.sections.splice(index, 1)
+  activeId.value = 'general'
+  showNotice('Bereich gelöscht')
+}
+
 const exportContent = () => {
   if (!canExportContent.value) return
   const blob = new Blob([JSON.stringify(store.content, null, 2)], { type: 'application/json' })
@@ -726,6 +758,9 @@ onMounted(loadSessionRole)
         <span>Website-Bereiche</span>
         <span>{{ visibleCount }}/{{ store.content.sections.length }}</span>
       </div>
+      <button type="button" class="admin-create-section" @click="createCustomSection">
+        <i class="fa-solid fa-plus"></i> Neuen Bereich erstellen
+      </button>
       <nav class="admin-section-nav">
         <button
           v-for="section in filteredSections"
@@ -796,7 +831,12 @@ onMounted(loadSessionRole)
               <label class="admin-switch"><input v-model="activeSection.enabled" type="checkbox" /><span></span>{{ activeSection.enabled ? 'Sichtbar' : 'Ausgeblendet' }}</label>
             </div>
 
-            <div v-if="activeSection.id !== 'benefits'" class="admin-form-grid">
+            <CustomSectionBuilder
+              v-if="activeSection.content.custom === true"
+              :section="activeSection"
+              @notice="showNotice"
+            />
+            <div v-else-if="activeSection.id !== 'benefits'" class="admin-form-grid">
               <label
                 v-for="(value, key) in activeSection.content"
                 v-show="activeSection.id !== 'about' || !['imageUrl', 'imageUrl2'].includes(String(key))"
@@ -811,6 +851,10 @@ onMounted(loadSessionRole)
                 </div>
                 <input v-else :value="String(value)" :type="inputType(String(key), value)" @input="updateContentValue(activeSection.content, String(key), $event)" />
               </label>
+            </div>
+            <div v-if="activeSection.content.custom === true" class="admin-custom-section-actions">
+              <label><span>Name im Admin-Menü</span><input v-model="activeSection.label" type="text" /></label>
+              <button type="button" class="admin-button danger" @click="removeCustomSection"><i class="fa-solid fa-trash"></i> Bereich löschen</button>
             </div>
             <div
               v-if="activeSection.id === 'about'"
@@ -854,7 +898,7 @@ onMounted(loadSessionRole)
 
           <section
             v-for="group in itemGroups"
-            v-show="!isGeneral && !isMessages && !isDatabase && (group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id))"
+            v-show="!isGeneral && !isMessages && !isDatabase && activeSection.content.custom !== true && (group.entries.length || ['services', 'gallery', 'testimonials', 'faq', 'benefits'].includes(activeSection.id))"
             :key="group.id"
             class="admin-card"
             :data-content-group="group.id"

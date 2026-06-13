@@ -475,17 +475,6 @@ const contentApi = (): Plugin => {
           sendJson(response, 400, { message: 'Invalid website content.' })
           return
         }
-        const session = currentSession(request)!
-        if (session.user.role === 'editor') {
-          const savedContent = await readWebsiteContent(contentDatabase)
-          const savedOrder = savedContent?.sections.map((section) => section.id) ?? []
-          const incomingOrder = content.sections.map((section) => String((section as { id?: unknown }).id ?? ''))
-          if (savedOrder.length && JSON.stringify(savedOrder) !== JSON.stringify(incomingOrder)) {
-            sendJson(response, 403, { message: 'Editors cannot change section order.' })
-            return
-          }
-        }
-
         await writeWebsiteContent(content as Parameters<typeof writeWebsiteContent>[0], contentDatabase)
         sendJson(response, 200, content)
         return
@@ -548,7 +537,7 @@ const galleryApi = (): Plugin => {
 
         await mkdir(galleryDirectory, { recursive: true })
         await writeFile(path.join(galleryDirectory, filename), body)
-        if (request.headers['x-image-usage'] !== 'about') {
+        if (!request.headers['x-image-usage']) {
           const records = await readGallery()
           const existingIndex = records.findIndex((entry) => entry.imageUrl === record.imageUrl)
           if (existingIndex >= 0) records[existingIndex] = record

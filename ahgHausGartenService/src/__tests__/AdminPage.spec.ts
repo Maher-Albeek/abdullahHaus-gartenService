@@ -55,7 +55,7 @@ describe('AdminPage service modal', () => {
     fetchMock.mockRestore()
   })
 
-  it('restricts editor imports, exports, and ordering controls', async () => {
+  it('restricts editor imports and exports but allows section ordering', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
       if (url === '/api/auth/session') {
         return new Response(JSON.stringify({ user: { id: 'editor-1', email: 'editor@example.com', displayName: 'Editor', role: 'editor' } }))
@@ -68,7 +68,7 @@ describe('AdminPage service modal', () => {
     const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
-    expect(wrapper.find('.admin-order').exists()).toBe(false)
+    expect(wrapper.find('.admin-order').exists()).toBe(true)
     expect(wrapper.find('.admin-notification-button').exists()).toBe(false)
     expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Import'))).toBe(false)
     expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Export'))).toBe(false)
@@ -76,11 +76,26 @@ describe('AdminPage service modal', () => {
 
     const servicesNav = wrapper.findAll('.admin-section-nav button').find((button) => button.text().includes('Leistungen'))!
     await servicesNav.trigger('click')
-    expect(wrapper.find('.admin-drag-handle').exists()).toBe(false)
-    expect(wrapper.find('.admin-mobile-sort').exists()).toBe(false)
+    expect(wrapper.find('.admin-drag-handle').exists()).toBe(true)
+    expect(wrapper.find('.admin-mobile-sort').exists()).toBe(true)
 
     wrapper.unmount()
     fetchMock.mockRestore()
+  })
+
+  it('creates a custom section with a visual builder for every content role', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useWebsiteContentStore()
+    const wrapper = mount(AdminPage, { global: { plugins: [pinia] } })
+
+    await wrapper.get('.admin-create-section').trigger('click')
+
+    const section = store.content.sections[store.content.sections.length - 1]!
+    expect(section.content.custom).toBe(true)
+    expect(wrapper.find('.section-builder-canvas').exists()).toBe(true)
+    await wrapper.get('.section-builder-toolbar .admin-button.soft').trigger('click')
+    expect(section.items[0]?.type).toBe('card')
   })
 
   it('does not allow owners to see the import button', async () => {

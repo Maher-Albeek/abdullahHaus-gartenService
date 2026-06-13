@@ -95,6 +95,16 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+.admin-create-section {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px;
+  border: 1px dashed #657260;
+  border-radius: 9px;
+  background: #293027;
+  color: #dce8d7;
+  font: 700 10px Montserrat, sans-serif;
+}
 .admin-section-nav {
   display: grid;
   gap: 4px;
@@ -1217,6 +1227,43 @@
   font-size: 11px;
   box-shadow: 0 12px 35px #0003;
 }
+.section-builder { padding: 18px 20px; display: grid; gap: 16px; }
+.section-builder-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.section-builder-upload { position: relative; overflow: hidden; }
+.section-builder-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.section-builder-settings, .section-builder-block-editors details > div {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+}
+.section-builder-settings label, .section-builder-block-editors label, .admin-custom-section-actions label { display: grid; gap: 6px; }
+.section-builder-settings .wide, .section-builder-block-editors .wide { grid-column: 1/-1; }
+.section-builder-settings span, .section-builder-block-editors label span, .admin-custom-section-actions label span {
+  color: #666e63; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.section-builder-settings input, .section-builder-settings textarea, .section-builder-block-editors input, .section-builder-block-editors textarea, .admin-custom-section-actions input {
+  width: 100%; padding: 10px; border: 1px solid #dfe4db; border-radius: 8px; background: #fafbf9; font: 500 11px Montserrat, sans-serif;
+}
+.section-builder-canvas {
+  position: relative; min-height: 560px; border: 1px solid #dce3d8; border-radius: 14px; overflow: hidden;
+  background-position: center; background-size: cover;
+}
+.section-builder-heading { position: relative; z-index: 1; max-width: 620px; padding: 38px; pointer-events: none; }
+.section-builder-heading small { color: inherit; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
+.section-builder-heading h2 { margin: 7px 0; font-size: 30px; }
+.section-builder-heading p { margin: 0; line-height: 1.6; }
+.section-builder-block {
+  position: absolute; z-index: 2; min-width: 90px; padding: 18px; border-radius: 14px; box-shadow: 0 12px 30px #0002;
+  touch-action: none; cursor: grab !important; user-select: none;
+}
+.section-builder-block:active { cursor: grabbing !important; }
+.section-builder-block strong, .section-builder-block span { display: block; }
+.section-builder-block span { margin-top: 7px; font-size: 11px; line-height: 1.5; }
+.section-builder-block--button { padding: 12px 18px; border-radius: 999px; font-size: 11px; font-weight: 800; text-align: center; }
+.section-builder-block-editors { display: grid; gap: 8px; }
+.section-builder-block-editors details { border: 1px solid #e2e5df; border-radius: 10px; }
+.section-builder-block-editors summary { display: flex; align-items: center; gap: 9px; padding: 12px; font-size: 11px; }
+.section-builder-block-editors summary span { margin-left: auto; color: #899087; font-size: 9px; text-transform: uppercase; }
+.section-builder-block-editors details > div { padding: 14px; border-top: 1px solid #edf0ea; }
+.admin-custom-section-actions { padding: 0 20px 20px; display: flex; align-items: end; justify-content: space-between; gap: 12px; }
 .admin-toast i {
   color: #78bb4b;
 }

@@ -49,6 +49,27 @@ body {
   width: 100%;
 }
 
+.custom-content-section {
+  position: relative;
+  overflow: hidden;
+  padding: 2.5rem;
+  background-position: center;
+  background-size: cover;
+}
+.custom-content-heading { position: relative; z-index: 1; max-width: 42rem; }
+.custom-content-heading p { margin: 0; font-size: .75rem; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+.custom-content-heading h2 { margin: .6rem 0; font-size: clamp(2rem, 5vw, 4rem); font-weight: 900; line-height: 1.05; }
+.custom-content-heading span { display: block; font-size: 1rem; line-height: 1.7; }
+.custom-content-block { position: absolute; z-index: 2; display: block; padding: 1.4rem; border-radius: 1rem; box-shadow: 0 1rem 2.5rem #0002; }
+.custom-content-card strong, .custom-content-card span { display: block; }
+.custom-content-card span { margin-top: .55rem; line-height: 1.6; }
+.custom-content-button { border-radius: 999px; font-weight: 800; text-align: center; text-decoration: none; }
+@media (max-width: 700px) {
+  .custom-content-section { min-height: auto !important; padding: 3rem 1rem; }
+  .custom-content-block { position: relative; inset: auto !important; width: 100% !important; margin-top: 1rem; }
+  .section-builder-settings, .section-builder-block-editors details > div { grid-template-columns: 1fr; }
+}
+
 @theme {
   --color-brand-red: #8b1a2b;
   --color-brand-red-light: #b02236;
