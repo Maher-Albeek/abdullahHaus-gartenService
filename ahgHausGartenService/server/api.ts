@@ -1,5 +1,5 @@
 import { URL } from 'node:url'
-import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto'
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import path from 'node:path'
@@ -44,8 +44,9 @@ const contentDatabase = path.resolve('database/website-content.json')
 const messagesDatabase = path.resolve('database/messages.json')
 const usersDatabase = path.resolve('database/users.json')
 const databaseFiles = [galleryDatabase, contentDatabase, messagesDatabase, usersDatabase]
-const sessions = new Map<string, { user: { id: string; email: string; displayName: string; role: string }; expiresAt: number }>()
 const sessionLifetime = 60 * 60 * 8
+type Session = { user: { id: string; email: string; displayName: string; role: string }; expiresAt: number }
+let sessionSecret: string | undefined
 const scryptAsync = promisify(scrypt)
 const apiMiddlewares: Connect.NextHandleFunction[] = []
 
@@ -129,14 +130,27 @@ const parseCookies = (request: Connect.IncomingMessage) =>
       .map(([key, value]) => [key, decodeURIComponent(value!)]),
   )
 
-const currentSession = (request: Connect.IncomingMessage) => {
+const signSession = (session: Session) => {
+  if (!sessionSecret) throw new Error('SESSION_SECRET is not configured.')
+  const payload = Buffer.from(JSON.stringify(session)).toString('base64url')
+  const signature = createHmac('sha256', sessionSecret).update(payload).digest('base64url')
+  return `${payload}.${signature}`
+}
+
+const currentSession = (request: Connect.IncomingMessage): Session | undefined => {
   const token = parseCookies(request).ahg_session
-  const session = token ? sessions.get(token) : undefined
-  if (token && session && session.expiresAt <= Date.now()) {
-    sessions.delete(token)
+  if (!token || !sessionSecret) return undefined
+  const [payload, signature] = token.split('.')
+  if (!payload || !signature) return undefined
+  const expected = createHmac('sha256', sessionSecret).update(payload).digest()
+  const actual = Buffer.from(signature, 'base64url')
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return undefined
+  try {
+    const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Session
+    return session.expiresAt > Date.now() ? session : undefined
+  } catch {
     return undefined
   }
-  return session
 }
 
 const requireAuthentication = (request: Connect.IncomingMessage, response: ServerResponse) => {
@@ -232,9 +246,8 @@ const authApi = (
           sendJson(response, 401, { message: 'Invalid email or password.' })
           return
         }
-        const token = randomBytes(32).toString('hex')
         const publicUser = { id: user.id, email: user.email, displayName: user.displayName, role: user.role }
-        sessions.set(token, { user: publicUser, expiresAt: Date.now() + sessionLifetime * 1000 })
+        const token = signSession({ user: publicUser, expiresAt: Date.now() + sessionLifetime * 1000 })
         response.setHeader(
           'Set-Cookie',
           `ahg_session=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${sessionLifetime}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
@@ -245,8 +258,6 @@ const authApi = (
       }
 
       if (pathname === '/api/auth/logout' && request.method === 'POST') {
-        const token = parseCookies(request).ahg_session
-        if (token) sessions.delete(token)
         response.setHeader('Set-Cookie', 'ahg_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0')
         sendJson(response, 200, { success: true })
         return
@@ -651,6 +662,7 @@ let configured = false
 export const configureApi = (env: Record<string, string | undefined> = process.env) => {
   if (configured) return []
   configured = true
+  sessionSecret = env.SESSION_SECRET || env.ADMIN_PASSWORD
   configureDatabase(env.DATABASE_URL)
 
   return [

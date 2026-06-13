@@ -44,7 +44,8 @@ Production deployments on Netlify rewrite API routes to the serverless function
 in `netlify/functions/api.ts`. Configure the variables from `.env.example` in
 Netlify under **Site configuration > Environment variables**. `DATABASE_URL`
 must point to a remotely accessible MySQL database so data persists between
-function invocations.
+function invocations. Set a long random `SESSION_SECRET` so authenticated
+sessions remain valid across separate Netlify function invocations.
 
 Deploys use the build and redirect settings in `netlify.toml`. Set `APP_URL` to
 the production Netlify or custom-domain URL so password-reset links are correct.
