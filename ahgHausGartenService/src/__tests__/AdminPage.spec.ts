@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import AdminPage from '../pages/AdminPage.vue'
 import { useWebsiteContentStore } from '../stores/websiteContent'
 
@@ -16,6 +17,42 @@ describe('AdminPage service modal', () => {
     expect(wrapper.find('.preview-window').exists()).toBe(false)
     expect(wrapper.get('.admin-topbar h1').text()).toBe('General')
     expect(wrapper.find('.admin-order').exists()).toBe(true)
+  })
+
+  it('shows the signed-in user in the sidebar and logs out from the avatar card', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+      if (url === '/api/auth/session') {
+        return new Response(JSON.stringify({
+          user: { id: 'boss-1', email: 'boss@example.com', displayName: 'Maria Muster', role: 'boss' },
+        }))
+      }
+      if (url === '/api/auth/logout' && options?.method === 'POST') return new Response(null, { status: 204 })
+      if (url === '/api/messages') return new Response(JSON.stringify([]))
+      return new Response(null, { status: 204 })
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/admin', component: AdminPage },
+        { path: '/login', component: { template: '<div>Login</div>' } },
+      ],
+    })
+    await router.push('/admin')
+    await router.isReady()
+
+    const wrapper = mount(AdminPage, { global: { plugins: [createPinia(), router] } })
+    await flushPromises()
+
+    expect(wrapper.get('.admin-user-avatar').text()).toBe('MM')
+    expect(wrapper.get('.admin-user-details').text()).toContain('Maria Muster')
+    expect(wrapper.get('.admin-user-details').text()).toContain('Boss')
+    await wrapper.get('.admin-user-logout').trigger('click')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' })
+    expect(router.currentRoute.value.path).toBe('/login')
+    wrapper.unmount()
+    fetchMock.mockRestore()
   })
 
   it('restricts editor imports, exports, and ordering controls', async () => {
@@ -46,7 +83,7 @@ describe('AdminPage service modal', () => {
     fetchMock.mockRestore()
   })
 
-  it('allows only owners to see the import button', async () => {
+  it('does not allow owners to see the import button', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       if (url === '/api/auth/session') {
         return new Response(JSON.stringify({ user: { id: 'owner-1', email: 'owner@example.com', displayName: 'Owner', role: 'owner' } }))
@@ -57,7 +94,7 @@ describe('AdminPage service modal', () => {
     const wrapper = mount(AdminPage, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
-    expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Import'))).toBe(true)
+    expect(wrapper.findAll('.admin-actions button').some((button) => button.text().includes('Import'))).toBe(false)
 
     wrapper.unmount()
     fetchMock.mockRestore()

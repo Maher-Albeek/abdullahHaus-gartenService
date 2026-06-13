@@ -18,13 +18,22 @@ type ContactMessage = {
   read?: boolean
 }
 
+type SessionUser = {
+  id: string
+  email: string
+  displayName: string
+  role: string
+}
+
 const store = useWebsiteContentStore()
 const router = useRouter()
 const currentRole = ref('boss')
+const currentUser = ref<SessionUser | null>(null)
+const loggingOut = ref(false)
 const canManageUsers = computed(() => ['boss', 'owner'].includes(currentRole.value))
 const canAccessMessages = computed(() => ['boss', 'owner'].includes(currentRole.value))
 const canAccessDatabase = computed(() => currentRole.value === 'boss')
-const canImportContent = computed(() => currentRole.value === 'owner')
+const canImportContent = computed(() => currentRole.value === 'boss')
 const canExportContent = computed(() => ['boss', 'owner'].includes(currentRole.value))
 const canReorderContent = computed(() => currentRole.value !== 'editor')
 const storedActiveId = window.localStorage.getItem('ahg-admin-active-panel')
@@ -62,6 +71,17 @@ const serviceSection = () => store.content.sections.find((section) => section.id
 const benefitsSection = () => store.content.sections.find((section) => section.id === 'benefits')
 const serviceDrafts = ref<ContentItem[]>(serviceSection()?.items.map(cloneItem) ?? [])
 const benefitDrafts = ref<ContentItem[]>(benefitsSection()?.items.map(cloneItem) ?? [])
+const userInitials = computed(() => {
+  const source = currentUser.value?.displayName.trim() || currentUser.value?.email.split('@')[0] || 'AHG'
+  const parts = source.split(/\s+/).filter(Boolean)
+  return (parts.length > 1 ? `${parts[0]![0]}${parts[parts.length - 1]![0]}` : source.slice(0, 2)).toUpperCase()
+})
+const roleLabel = computed(() => ({
+  admin: 'Admin',
+  boss: 'Boss',
+  owner: 'Admin',
+  editor: 'Editor',
+})[currentUser.value?.role ?? ''] ?? currentUser.value?.role ?? '')
 
 const serviceIcons = [
   ['fa-solid fa-broom', 'Besen'],
@@ -642,17 +662,23 @@ const showNotice = (message: string) => {
 }
 
 const logout = async () => {
-  await fetch('/api/auth/logout', { method: 'POST' })
-  await router.replace('/login')
+  loggingOut.value = true
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    await router.replace('/login')
+  } finally {
+    loggingOut.value = false
+  }
 }
 
 const loadSessionRole = async () => {
   try {
     const response = await fetch('/api/auth/session')
     if (!response.ok) return
-    const result = await readApiResponse<{ user?: { role?: string } }>(response)
-    if (!result.user?.role || !['boss', 'owner', 'editor'].includes(result.user.role)) return
-    currentRole.value = result.user.role
+    const result = await readApiResponse<{ user?: SessionUser }>(response)
+    if (!result.user?.role) return
+    currentUser.value = result.user
+    if (['admin', 'boss', 'owner', 'editor'].includes(result.user.role)) currentRole.value = result.user.role
     if (isDatabase.value && !canAccessDatabase.value) activeId.value = 'general'
     if (isMessages.value && !canAccessMessages.value) activeId.value = 'general'
   } catch {
@@ -715,8 +741,24 @@ onMounted(loadSessionRole)
       </nav>
 
       <div class="admin-sidebar-footer">
+        <div v-if="currentUser" class="admin-user-card">
+          <span class="admin-user-avatar" aria-hidden="true">{{ userInitials }}</span>
+          <span class="admin-user-details">
+            <strong>{{ currentUser.displayName || currentUser.email }}</strong>
+            <small>{{ roleLabel }}</small>
+          </span>
+          <button
+            type="button"
+            class="admin-user-logout"
+            :disabled="loggingOut"
+            :aria-label="`${currentUser.displayName || currentUser.email} abmelden`"
+            title="Abmelden"
+            @click="logout"
+          >
+            <i :class="`fa-solid fa-${loggingOut ? 'spinner fa-spin' : 'right-from-bracket'}`"></i>
+          </button>
+        </div>
         <a href="/" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Website öffnen</a>
-        <button type="button" @click="logout"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
       </div>
     </aside>
 

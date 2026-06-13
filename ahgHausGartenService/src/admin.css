@@ -144,6 +144,69 @@
   border-top: 1px solid #384036;
   padding-top: 18px;
 }
+.admin-user-card {
+  min-width: 0;
+  margin-bottom: 16px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #414a3e;
+  border-radius: 12px;
+  background: #2b3229;
+}
+.admin-user-avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), #72ae48);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.admin-user-details {
+  min-width: 0;
+}
+.admin-user-details strong,
+.admin-user-details small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-user-details strong {
+  color: #fff;
+  font-size: 11px;
+}
+.admin-user-details small {
+  margin-top: 3px;
+  color: #9da89a;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.admin-sidebar-footer .admin-user-logout {
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #3a4337;
+  color: #fff;
+}
+.admin-sidebar-footer .admin-user-logout:hover {
+  background: var(--red);
+}
+.admin-sidebar-footer .admin-user-logout:disabled {
+  opacity: 0.6;
+}
 .admin-sidebar-footer a,
 .admin-sidebar-footer button {
   color: #c9cec7;
@@ -1301,7 +1364,16 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .admin-sidebar-footer {
-    display: none;
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .admin-user-card {
+    margin: 0;
+  }
+  .admin-sidebar-footer > a {
+    justify-self: start;
   }
   .admin-main {
     padding: 20px 12px;
