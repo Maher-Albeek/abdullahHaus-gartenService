@@ -6,6 +6,8 @@ type NetlifyEvent = {
   headers: Record<string, string | undefined>
   httpMethod: string
   isBase64Encoded: boolean
+  path?: string
+  rawUrl?: string
   multiValueQueryStringParameters?: Record<string, string[] | undefined> | null
   queryStringParameters?: Record<string, string | undefined> | null
 }
@@ -18,7 +20,15 @@ type NetlifyResponse = {
 }
 
 const apiUrl = (event: NetlifyEvent) => {
-  const path = event.queryStringParameters?.__path
+  const functionPath = event.path?.match(/^\/\.netlify\/functions\/api\/?(.*)$/)?.[1]
+  const rawPath = event.rawUrl
+    ? new URL(event.rawUrl).pathname.match(/^\/(?:\.netlify\/functions\/api|api)\/?(.*)$/)?.[1]
+    : undefined
+  const path =
+    event.queryStringParameters?.__path ??
+    event.multiValueQueryStringParameters?.__path?.[0] ??
+    functionPath ??
+    rawPath
   const search = new URLSearchParams()
 
   for (const [key, values] of Object.entries(event.multiValueQueryStringParameters ?? {})) {

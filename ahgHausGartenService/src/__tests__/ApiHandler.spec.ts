@@ -7,7 +7,7 @@ const event = (path: string) => ({
   headers: {},
   httpMethod: 'GET',
   isBase64Encoded: false,
-  queryStringParameters: { __path: path },
+  path: `/.netlify/functions/api/${path}`,
 })
 
 describe('production API handler', () => {
